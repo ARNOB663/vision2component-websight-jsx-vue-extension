@@ -1,0 +1,39 @@
+<template>
+  <div class="bg-green-100">
+    <header class="relative">
+      <video class="w-full h-full object-cover" autoplay loop muted>
+        <source src="https://static.photos/art/900x600/162.webp" type="video/mp4">
+      </video>
+      <nav class="absolute top-0 w-full flex justify-center">
+        <ul class="flex justify-center items-center list-none p-0">
+          <li class="mx-2"><a href="#" class="text-white">Home</a></li>
+          <li class="mx-2"><a href="#" class="text-white">About</a></li>
+          <li class="mx-2"><a href="#" class="text-white">Services</a></li>
+          <li class="mx-2"><a href="#" class="text-white">Contact</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main class="flex flex-col items-center justify-center h-screen">
+      <h1 class="text-4xl font-bold text-center">Green Energy Solutions</h1>
+      <p class="text-xl text-center">We provide innovative solutions for green energy. Our mission is to reduce our carbon footprint and promote sustainable living.</p>
+      <button class="mt-4 bg-white hover:bg-gray-100 text-green-800 font-semibold py-2 px-4 border border-green-400 hover:border-transparent rounded">
+        Learn More
+      </button>
+    </main>
+
+    <footer class="bg-green-800 text-white text-center p-4">
+      <p>Green Energy Solutions is dedicated to promoting green initiatives. Contact us for more information.</p>
+      <p>Phone: 123-456-7890</p>
+      <p>Email: info@greenenergy.com</p>
+    </footer>
+  </div>
+</template>
+
+<script setup>
+// No script needed for this simple template
+</script>
+
+<style scoped>
+/* Add any custom styles here if needed */
+</style>

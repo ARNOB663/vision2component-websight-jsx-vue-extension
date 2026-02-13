@@ -1,0 +1,57 @@
+<template>
+  <div class="font-sans antialiased text-gray-900 leading-normal tracking-wider bg-cover bg-center" :style="{ backgroundImage: 'url(https://static.photos/health/1600x900/102.webp)' }">
+    <header class="bg-white text-center p-12">
+      <h1 class="text-5xl font-bold mb-4">Health and Wellness</h1>
+      <p class="text-xl">
+        At our health and wellness center, we believe in the power of nature to heal and nurture. We offer a wide range of services to help you feel your best.
+      </p>
+    </header>
+
+    <section class="bg-white text-center p-12">
+      <h2 class="text-4xl font-bold mb-4">Our Services</h2>
+      <p class="text-xl">
+        We offer a variety of services to help you feel your best. From personalized nutrition plans to mindful yoga, we've got you covered.
+      </p>
+    </section>
+
+    <section class="bg-white text-center p-12">
+      <h2 class="text-4xl font-bold mb-4">Contact Us</h2>
+      <p class="text-xl">
+        We'd love to hear from you. Please fill out the form below and we'll get back to you as soon as possible.
+      </p>
+      <form class="w-full max-w-sm mx-auto">
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
+            Name
+          </label>
+          <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="name" type="text" placeholder="Name">
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
+            Email
+          </label>
+          <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="email" type="email" placeholder="Email">
+        </div>
+        <div class="mb-6">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="message">
+            Message
+          </label>
+          <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="message" placeholder="Message"></textarea>
+        </div>
+        <div class="flex items-center justify-between">
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">
+            Submit
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+</template>
+
+<script setup>
+// No script needed for this simple example
+</script>
+
+<style scoped>
+/* Add any custom styles here if needed */
+</style>

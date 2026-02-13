@@ -1,0 +1,22 @@
+<template>
+  <div class="flex flex-col items-center justify-center h-screen bg-gray-100">
+    <h1 class="text-4xl font-bold text-center text-gray-800">Fashion Brand</h1>
+    <p class="mt-4 text-lg text-center text-gray-600">
+      Fashion Brand is a leading fashion brand that offers a wide range of high-quality, stylish clothing and accessories. Our collections are designed to reflect the latest fashion trends and are made from high-quality materials. We are committed to providing our customers with the best possible shopping experience and we strive to make our collections accessible to all.
+    </p>
+    <div class="mt-8">
+      <img src="https://picsum.photos/seed/0/900/600" alt="Fashion Brand" class="rounded">
+    </div>
+    <div class="mt-8">
+      <nav class="flex justify-center space-x-4">
+        <a href="#" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">Home</a>
+        <a href="#" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">About</a>
+        <a href="#" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">Contact</a>
+      </nav>
+    </div>
+  </div>
+</template>
+
+<script setup>
+// No script needed for this simple template
+</script>

@@ -1,0 +1,29 @@
+import React from 'react';
+
+const GeneratedComponent = () => {
+  return (
+    <div className="bg-gray-100 font-sans leading-normal tracking-normal">
+      <div className="container w-full md:max-w-3xl mx-auto pt-20">
+        <div className="w-full px-4 md:px-6 text-xl text-gray-800 leading-normal" style={{ fontFamily: "'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana" }}>
+          <div className="font-sans font-bold break-normal text-gray-900 pt-6 pb-2 text-2xl mb-10 text-center">
+            Welcome to Our Education Institution
+          </div>
+          <p className="text-base">
+            At our institution, we are committed to providing a high-quality education that is both intellectually stimulating and challenging. We believe in the power of education to transform lives and to create a better future for our society. Our faculty is a diverse group of individuals, each with their own unique experiences and perspectives, but they all share a common goal: to help our students reach their full potential.
+          </p>
+          <p className="text-base">
+            We offer a wide range of programs, from undergraduate degrees to graduate certificates, to certificate programs, to continuing education opportunities. Our programs are designed to meet the needs of a wide range of students, from those looking to start a new career to those seeking to advance their existing education.
+          </p>
+          <p className="text-base">
+            We believe in the importance of community and strive to create a supportive and inclusive environment for our students. We encourage our students to participate in a variety of activities and events, from academic competitions to extracurricular clubs. We also provide a range of resources and services to help our students succeed, including tutoring, study spaces, and financial aid.
+          </p>
+          <p className="text-base">
+            We are proud to be a part of the community and to contribute to the larger educational landscape. We are committed to fostering a culture of innovation and collaboration, and we believe that our institution can play a significant role in shaping the future of education.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default GeneratedComponent;

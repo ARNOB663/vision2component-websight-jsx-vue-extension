@@ -1,0 +1,53 @@
+<template>
+  <nav class="flex items-center justify-between flex-wrap bg-teal-500 p-6">
+    <div class="flex items-center flex-shrink-0 text-white mr-6">
+      <span class="font-semibold text-xl tracking-tight">Restaurant Chain</span>
+    </div>
+    <div class="w-full block flex-grow lg:flex lg:items-center lg:w-auto">
+      <div class="text-sm lg:flex-grow">
+        <a href="#location" class="block mt-4 lg:inline-block lg:mt-0 text-teal-200 hover:text-white mr-4">
+          Location
+        </a>
+        <a href="#menu" class="block mt-4 lg:inline-block lg:mt-0 text-teal-200 hover:text-white mr-4">
+          Menu
+        </a>
+        <a href="#order" class="block mt-4 lg:inline-block lg:mt-0 text-teal-200 hover:text-white">
+          Order Online
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container mx-auto px-4 py-8">
+    <!-- Your content here -->
+  </main>
+
+  <footer class="bg-gray-800 text-white p-6">
+    <div class="flex items-center justify-between flex-wrap">
+      <div class="w-full block flex-grow lg:flex lg:items-center lg:w-auto">
+        <div class="text-sm lg:flex-grow">
+          <a href="#" class="block mt-4 lg:inline-block lg:mt-0 text-gray-400 hover:text-white mr-4">
+            Facebook
+          </a>
+          <a href="#" class="block mt-4 lg:inline-block lg:mt-0 text-gray-400 hover:text-white mr-4">
+            Twitter
+          </a>
+          <a href="#" class="block mt-4 lg:inline-block lg:mt-0 text-gray-400 hover:text-white">
+            Instagram
+          </a>
+        </div>
+      </div>
+      <div class="text-sm text-gray-400">
+        Contact: info@restaurantchain.com
+      </div>
+    </div>
+  </footer>
+</template>
+
+<script setup>
+// Your script here
+</script>
+
+<style scoped>
+/* Your styles here */
+</style>

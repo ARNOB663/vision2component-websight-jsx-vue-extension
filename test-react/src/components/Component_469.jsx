@@ -1,0 +1,50 @@
+import React from 'react';
+
+const GeneratedComponent = () => {
+  return (
+    <>
+      <nav className="w-full bg-transparent">
+        <div className="container mx-auto flex flex-wrap items-center justify-between mt-0 py-3">
+          <div className="flex items-center text-white-900 hover:text-gray-900">
+            <img src="https://picsum.photos/300/300?image=71" alt="Company Logo" />
+          </div>
+          <div className="flex-grow items-center hidden lg:flex">
+            <ul className="flex flex-row">
+              <li className="mr-3">
+                <a href="#" className="border-solid border-transparent hover:border-white text-white hover:text-gray-800 hover:border-b-0 px-3 py-2 flex items-center text-xs uppercase font-bold leading-snug">
+                  Home
+                </a>
+              </li>
+              <li className="mr-3">
+                <a href="#" className="border-solid border-transparent hover:border-white text-white hover:text-gray-800 hover:border-b-0 px-3 py-2 flex items-center text-xs uppercase font-bold leading-snug">
+                  About
+                </a>
+              </li>
+              <li className="mr-3">
+                <a href="#" className="border-solid border-transparent hover:border-white text-white hover:text-gray-800 hover:border-b-0 px-3 py-2 flex items-center text-xs uppercase font-bold leading-snug">
+                  Services
+                </a>
+              </li>
+              <li className="mr-3">
+                <a href="#" className="border-solid border-transparent hover:border-white text-white hover:text-gray-800 hover:border-b-0 px-3 py-2 flex items-center text-xs uppercase font-bold leading-snug">
+                  Contact
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold">Welcome to Our Tech Startup</h1>
+          <p className="text-lg mt-4">We are a dynamic and innovative tech startup, dedicated to providing the best solutions for your business needs. Our team of experts is always ready to help you achieve your goals.</p>
+          <button className="mt-6 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+            Try Our Product
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default GeneratedComponent;

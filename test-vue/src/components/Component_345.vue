@@ -1,0 +1,49 @@
+<template>
+  <div class="container w-full md:max-w-3xl mx-auto pt-20">
+    <div class="w-full px-4 md:px-6 text-xl text-gray-800 leading-normal">
+      <div class="font-sans font-bold break-normal pt-6 pb-2 text-gray-900 px-4 md:px-0">
+        <div class="text-center">
+          <p class="text-5xl">Welcome to our Food Delivery Service</p>
+          <p class="text-2xl">We offer a wide variety of appetizing food options, carefully curated to satisfy your cravings.</p>
+        </div>
+      </div>
+      <div class="py-6 px-6">
+        <div class="flex flex-wrap">
+          <div class="w-full md:w-1/2 p-6 flex flex-col flex-grow flex-shrink">
+            <div class="flex-1 bg-white text-gray-800 p-6 rounded-lg shadow-md">
+              <p class="text-2xl font-bold">Filter by Dietary Preferences</p>
+              <!-- Add your filter options here -->
+            </div>
+          </div>
+          <div class="w-full md:w-1/2 p-6 flex flex-col flex-grow flex-shrink">
+            <div class="flex-1 bg-white text-gray-800 p-6 rounded-lg shadow-md">
+              <p class="text-2xl font-bold">Filter by Location</p>
+              <!-- Add your filter options here -->
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-wrap">
+        <div class="w-full p-6 flex flex-col flex-grow flex-shrink">
+          <div class="flex-1 bg-white text-gray-800 p-6 rounded-lg shadow-md">
+            <p class="text-2xl font-bold">Our Food</p>
+            <!-- Add your food images here -->
+          </div>
+        </div>
+      </div>
+      <div class="text-center">
+        <button class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mt-6">
+          Order Now
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+// Your script setup logic here
+</script>
+
+<style scoped>
+/* Your scoped styles here */
+</style>

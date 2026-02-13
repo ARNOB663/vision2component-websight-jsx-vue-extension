@@ -1,0 +1,42 @@
+<template>
+  <header class="bg-cover bg-center h-screen" :style="{ backgroundImage: 'url(https://static.photos/travel/1600x900/125.webp)' }">
+    <div class="container mx-auto px-6 md:flex md:items-center md:justify-between py-4">
+      <div class="text-center text-white">
+        <h1 class="font-bold uppercase text-5xl pt-20 md:pt-0">Travel Agency</h1>
+        <h2 class="font-bold text-2xl">Discover the world</h2>
+      </div>
+    </div>
+  </header>
+
+  <nav class="bg-white py-4">
+    <div class="container mx-auto px-6 flex items-center justify-between">
+      <ul class="flex items-center">
+        <li class="mr-6"><a class="text-black hover:text-indigo-800" href="#">Destinations</a></li>
+        <li class="mr-6"><a class="text-black hover:text-indigo-800" href="#">Travel Styles</a></li>
+        <li class="mr-6"><a class="text-black hover:text-indigo-800" href="#">Tours</a></li>
+        <li class="mr-6"><a class="text-black hover:text-indigo-800" href="#">Deals</a></li>
+      </ul>
+      <div class="flex items-center">
+        <input class="border border-gray-300 px-3 py-2 rounded-lg" type="text" placeholder="Search...">
+      </div>
+    </div>
+  </nav>
+
+  <main class="container mx-auto px-6 py-8">
+    <!-- Your content here -->
+  </main>
+
+  <footer class="bg-gray-800 text-white py-8">
+    <div class="container mx-auto px-6">
+      <!-- Your footer content here -->
+    </div>
+  </footer>
+</template>
+
+<script setup>
+// Your script setup logic here
+</script>
+
+<style scoped>
+/* Your scoped styles here */
+</style>

@@ -1,0 +1,27 @@
+<template>
+  <div class="flex flex-col min-h-screen bg-gray-100 font-sans leading-normal tracking-normal">
+    <header class="bg-blue-500 text-white p-4">
+      <img src="https://static.photos/health/300x300/88.webp" alt="Logo" class="h-8">
+    </header>
+    <nav class="bg-white p-4">
+      <ul>
+        <li><a href="#">Home</a></li>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Services</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </nav>
+    <main class="flex-grow p-4">
+      <h1 class="text-2xl">Welcome to Our Healthcare Provider</h1>
+      <p class="my-4">We are a leading healthcare provider dedicated to providing high-quality, personalized care to our patients. Our team of experienced doctors, nurses, and support staff are committed to ensuring that you receive the best possible care.</p>
+      <a href="#" class="bg-blue-500 text-white px-4 py-2 rounded">Learn More</a>
+    </main>
+    <footer class="bg-blue-500 text-white p-4">
+      <p>© 2022 Healthcare Provider. All rights reserved.</p>
+    </footer>
+  </div>
+</template>
+
+<script setup>
+// No script needed for this example
+</script>

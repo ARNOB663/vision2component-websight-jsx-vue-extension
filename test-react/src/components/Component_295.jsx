@@ -1,0 +1,35 @@
+import React from 'react';
+
+const GeneratedComponent = () => {
+  return (
+    <div className="bg-gray-100 font-sans leading-normal tracking-normal">
+      <div className="container w-full md:max-w-3xl mx-auto pt-20">
+        <div className="w-full px-4 md:px-6 text-xl text-gray-800 leading-normal">
+          <div className="font-sans font-bold break-normal pt-6 pb-2 text-center">
+            <h1 className="text-4xl">Welcome to Our Creative Agency</h1>
+          </div>
+          <p className="py-6">
+            At our creative agency, we believe in the power of design to transform businesses and create meaningful experiences. We are a team of passionate designers, developers, and strategists who are dedicated to helping our clients tell their stories in a way that resonates with their audience. Whether you're looking for a brand new website, a rebrand, or a complete overhaul of your digital presence, we're here to help.
+          </p>
+          <div className="py-6">
+            <h2 className="text-2xl">Our Services</h2>
+            <ul className="list-disc pl-6">
+              <li>Web Design</li>
+              <li>Graphic Design</li>
+              <li>Digital Marketing</li>
+              <li>SEO</li>
+            </ul>
+          </div>
+          <div className="py-6">
+            <h2 className="text-2xl">Our Team</h2>
+            <p>
+              Our team is made up of experienced professionals who are passionate about what they do. We are always looking for talented individuals to join our team, so if you're interested in working with us, please get in touch.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default GeneratedComponent;

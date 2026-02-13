@@ -1,0 +1,45 @@
+import React from 'react';
+
+const GeneratedComponent = () => {
+  return (
+    <div className="bg-cover bg-center h-screen" style={{ backgroundImage: "url('https://static.photos/architecture/1600x900/116.webp')" }}>
+      <nav className="flex items-center justify-between flex-wrap bg-white p-6">
+        <div className="flex items-center flex-shrink-0 text-white mr-6">
+          <span className="font-semibold text-xl tracking-tight">Architecture Firm</span>
+        </div>
+        <div className="w-full block flex-grow lg:flex lg:items-center lg:w-auto">
+          <div className="text-sm lg:flex-grow">
+            <a href="#responsive-header" className="block mt-4 lg:inline-block lg:mt-0 text-teal-200 hover:text-white mr-4">
+              Home
+            </a>
+            <a href="#responsive-header" className="block mt-4 lg:inline-block lg:mt-0 text-teal-200 hover:text-white mr-4">
+              About
+            </a>
+            <a href="#responsive-header" className="block mt-4 lg:inline-block lg:mt-0 text-teal-200 hover:text-white">
+              Contact
+            </a>
+          </div>
+        </div>
+      </nav>
+      <div className="container mx-auto px-4 py-12">
+        <h1 className="text-4xl font-bold mb-4">Welcome to our Architecture Firm</h1>
+        <p className="text-lg mb-4">
+          We are a full-service architecture firm specializing in residential, commercial, and institutional projects. Our team of experienced architects and designers work closely with our clients to create spaces that are functional, beautiful, and sustainable.
+        </p>
+        <h2 className="text-2xl font-bold mb-4">Our Services</h2>
+        <p className="text-lg mb-4">
+          We offer a wide range of services including concept design, detailed design, construction documents, and project management. We also provide turnkey construction services for our clients.
+        </p>
+      </div>
+      <footer className="bg-white p-6">
+        <div className="container mx-auto px-4">
+          <p className="text-center text-gray-600">
+            © 2022 Architecture Firm. All rights reserved.
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default GeneratedComponent;

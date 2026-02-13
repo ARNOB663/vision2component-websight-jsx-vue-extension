@@ -1,0 +1,49 @@
+<template>
+  <nav class="bg-white p-6">
+    <ul class="flex space-x-6 justify-center">
+      <li><a href="#popular-dishes" class="text-gray-800 hover:text-gray-600">Popular Dishes</a></li>
+      <li><a href="#current-promotions" class="text-gray-800 hover:text-gray-600">Current Promotions</a></li>
+      <li><a href="#ordering-process" class="text-gray-800 hover:text-gray-600">Ordering Process</a></li>
+    </ul>
+  </nav>
+
+  <section id="popular-dishes" class="py-10">
+    <h2 class="text-3xl text-center text-gray-800 mb-6">Popular Dishes</h2>
+    <!-- Add your image carousel here -->
+  </section>
+
+  <section id="current-promotions" class="py-10">
+    <h2 class="text-3xl text-center text-gray-800 mb-6">Current Promotions</h2>
+    <!-- Add your promotions here -->
+  </section>
+
+  <section id="ordering-process" class="py-10">
+    <h2 class="text-3xl text-center text-gray-800 mb-6">Ordering Process</h2>
+    <!-- Add your ordering process here -->
+  </section>
+
+  <footer class="bg-white p-6">
+    <div class="flex justify-between">
+      <div>
+        <h3 class="text-xl text-gray-800 mb-3">Company Information</h3>
+        <!-- Add your company information here -->
+      </div>
+      <div>
+        <h3 class="text-xl text-gray-800 mb-3">Customer Reviews</h3>
+        <!-- Add your customer reviews here -->
+      </div>
+      <div>
+        <h3 class="text-xl text-gray-800 mb-3">Social Media</h3>
+        <!-- Add your social media links here -->
+      </div>
+    </div>
+  </footer>
+</template>
+
+<script setup>
+// Your script logic here
+</script>
+
+<style scoped>
+/* Your scoped styles here */
+</style>

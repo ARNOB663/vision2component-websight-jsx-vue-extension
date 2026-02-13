@@ -1,0 +1,35 @@
+<template>
+  <div class="bg-gray-800 text-white">
+    <header class="bg-gray-900 p-4">
+      <h1 class="text-2xl">Construction Company</h1>
+    </header>
+
+    <main class="flex flex-row">
+      <section class="w-1/2 p-4">
+        <img src="https://picsum.photos/seed/166/900/600" alt="Construction Project">
+        <p>Our construction company is dedicated to creating beautiful and functional spaces. We specialize in residential, commercial, and industrial projects.</p>
+        <button class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Learn More</button>
+      </section>
+
+      <section class="w-1/2 p-4">
+        <img src="https://picsum.photos/seed/166/900/600" alt="Architecture Project">
+        <p>We are committed to creating spaces that are not just beautiful, but also functional and efficient. Our projects are designed to meet the needs of our clients.</p>
+        <button class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Learn More</button>
+      </section>
+    </main>
+
+    <footer class="bg-gray-900 p-4">
+      <h2 class="text-xl">Contact Us</h2>
+      <form>
+        <input type="text" placeholder="Name" class="p-2 m-2">
+        <input type="email" placeholder="Email" class="p-2 m-2">
+        <textarea placeholder="Message" class="p-2 m-2"></textarea>
+        <button class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Submit</button>
+      </form>
+    </footer>
+  </div>
+</template>
+
+<script setup>
+// No script needed for this example
+</script>

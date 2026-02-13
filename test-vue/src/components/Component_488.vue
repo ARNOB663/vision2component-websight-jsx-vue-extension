@@ -1,0 +1,59 @@
+<template>
+  <header class="bg-white p-6">
+    <img src="https://static.photos/fashion/900x600/90.webp" alt="Header Image" class="w-full">
+    <div class="flex justify-center mt-6">
+      <input type="text" placeholder="Search for products..." class="w-1/2 p-2 rounded-lg">
+    </div>
+  </header>
+  <main class="flex justify-between p-6">
+    <div class="w-2/3">
+      <div class="grid grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-lg">Product 1</div>
+        <div class="bg-white p-6 rounded-lg">Product 2</div>
+        <div class="bg-white p-6 rounded-lg">Product 3</div>
+        <!-- Add more products as needed -->
+      </div>
+    </div>
+    <aside class="w-1/3">
+      <div class="bg-white p-6 rounded-lg">
+        <h2 class="text-lg font-bold mb-4">Categories</h2>
+        <ul>
+          <li>Category 1</li>
+          <li>Category 2</li>
+          <li>Category 3</li>
+          <!-- Add more categories as needed -->
+        </ul>
+      </div>
+    </aside>
+  </main>
+  <footer class="bg-white p-6">
+    <div class="flex justify-between">
+      <div>
+        <h2 class="text-lg font-bold mb-4">Follow Us</h2>
+        <ul>
+          <li>Facebook</li>
+          <li>Twitter</li>
+          <li>Instagram</li>
+          <!-- Add more social media links as needed -->
+        </ul>
+      </div>
+      <div>
+        <h2 class="text-lg font-bold mb-4">Newsletter</h2>
+        <form @submit.prevent="subscribe">
+          <input type="email" v-model="email" placeholder="Enter your email" class="w-full p-2 rounded-lg">
+          <button type="submit" class="bg-blue-500 text-white p-2 rounded-lg">Subscribe</button>
+        </form>
+      </div>
+    </div>
+  </footer>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+
+const email = ref('');
+
+const subscribe = () => {
+  // Handle subscription logic here
+};
+</script>

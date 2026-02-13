@@ -1,0 +1,55 @@
+<template>
+  <header class="bg-white shadow">
+    <div class="container mx-auto px-4 py-2 flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Food Delivery Service</h1>
+      <nav>
+        <button class="hamburger">
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container mx-auto px-4 py-6">
+    <div class="flex flex-col md:flex-row">
+      <div class="w-full md:w-1/2 p-4">
+        <img src="https://static.photos/art/900x600/98.webp" alt="Food Image" class="w-full">
+      </div>
+      <div class="w-full md:w-1/2 p-4">
+        <h2 class="text-xl font-bold mb-4">About Us</h2>
+        <p class="text-gray-700">
+          At Food Delivery Service, we are committed to providing our customers with the best food delivery service in the city. We offer a wide variety of food options from local restaurants to international cuisines. Our delivery service is fast, reliable, and affordable. We are dedicated to ensuring that our customers are satisfied with their food delivery every time.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-white shadow">
+    <div class="container mx-auto px-4 py-6">
+      <h2 class="text-xl font-bold mb-4">Newsletter Sign-up</h2>
+      <form @submit.prevent="handleSignup">
+        <input type="email" v-model="email" placeholder="Enter your email" class="w-full p-2 mb-4">
+        <button type="submit" class="bg-pink-500 text-white p-2">Sign Up</button>
+      </form>
+      <p class="text-gray-700 mt-4">
+        Our delivery service works by receiving your order, preparing the food, and delivering it to your doorstep. We use the latest technology to ensure that your food is hot and fresh when it arrives.
+      </p>
+    </div>
+  </footer>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+
+const email = ref('');
+
+const handleSignup = () => {
+  // Handle signup logic here
+};
+</script>
+
+<style scoped>
+/* Add any custom styles here */
+</style>

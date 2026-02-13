@@ -1,0 +1,44 @@
+<template>
+  <header class="bg-white p-4 flex justify-between items-center">
+    <div>
+      <input type="text" placeholder="Search properties..." class="border rounded p-2">
+    </div>
+    <nav>
+      <ul class="flex">
+        <li class="mr-4"><a href="#" class="text-purple-500">Home</a></li>
+        <li class="mr-4"><a href="#" class="text-purple-500">About</a></li>
+        <li><a href="#" class="text-purple-500">Contact</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="flex">
+    <div class="w-1/2">
+      <img src="https://picsum.photos/seed/276/900/600" alt="Property Image" class="w-full">
+    </div>
+    <div class="w-1/2 p-4">
+      <h2 class="text-2xl mb-4">Properties for Sale</h2>
+      <ul>
+        <li class="mb-2">123 Main St, Anytown USA</li>
+        <li class="mb-2">456 Oak St, Anytown USA</li>
+        <li class="mb-2">789 Pine St, Anytown USA</li>
+      </ul>
+    </div>
+  </main>
+
+  <footer class="bg-white p-4 flex justify-between items-center">
+    <div>
+      <p>123 Real Estate St, Anytown USA</p>
+      <p>(123) 456-7890</p>
+    </div>
+    <div>
+      <a href="#" class="text-purple-500 mr-2">Facebook</a>
+      <a href="#" class="text-purple-500 mr-2">Twitter</a>
+      <a href="#" class="text-purple-500">Instagram</a>
+    </div>
+  </footer>
+</template>
+
+<script setup>
+// No script needed for this example
+</script>

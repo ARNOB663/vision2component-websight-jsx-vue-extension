@@ -39,8 +39,15 @@ wheels/
 # Virtual environments
 venv/
 .venv/
+.venv311/
 env/
 ENV/
+
+# Node
+node_modules/
+package-lock.json
+test-react/node_modules/
+test-vue/node_modules/
 
 # IDE
 .vscode/
@@ -52,6 +59,12 @@ ENV/
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb_checkpoints
+
+# Logs
+*.log
+*_log.txt
+crash_log*.txt
+run_log*.txt
 
 # OS
 .DS_Store

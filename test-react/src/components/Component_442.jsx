@@ -1,0 +1,41 @@
+import React from 'react';
+
+const GeneratedComponent = () => {
+  return (
+    <>
+      <header className="w-full h-64 bg-cover bg-center" style={{ backgroundImage: "url('https://static.photos/technology/1600x900/43.webp')" }}>
+        <div className="container mx-auto px-6 py-3 flex justify-center">
+          <img className="h-16" src="https://static.photos/technology/300x300/44.webp" alt="Logo" />
+        </div>
+      </header>
+      <nav className="bg-blue-500 text-white p-4">
+        <div className="container mx-auto flex justify-center">
+          <a href="#" className="px-2">Home</a>
+          <a href="#" className="px-2">Products</a>
+          <a href="#" className="px-2">About Us</a>
+          <a href="#" className="px-2">Contact</a>
+        </div>
+      </nav>
+      <main className="container mx-auto px-6 py-3">
+        <div className="flex flex-wrap -mx-2 overflow-hidden">
+          <div className="my-2 px-2 w-full md:w-1/3">
+            <h2 className="text-2xl">Product Showcase</h2>
+            <p>Our products are designed to meet the needs of our customers. We offer a wide range of high-quality products that are reliable, efficient, and easy to use.</p>
+          </div>
+          <div className="my-2 px-2 w-full md:w-1/3">
+            <h2 className="text-2xl">About Us</h2>
+            <p>We are a technology company dedicated to providing innovative and reliable solutions to our customers. Our team is made up of experts in various fields of technology.</p>
+          </div>
+          <div className="my-2 px-2 w-full md:w-1/3">
+            <h2 className="text-2xl">Contact Information</h2>
+            <p>Phone: 123-456-7890</p>
+            <p>Email: info@techcompany.com</p>
+            <p>Address: 1234 Technology Street, City, State, Zip</p>
+          </div>
+        </div>
+      </main>
+    </>
+  );
+};
+
+export default GeneratedComponent;

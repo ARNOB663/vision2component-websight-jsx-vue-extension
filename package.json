@@ -1,0 +1,25 @@
+{
+  "name": "thesis-project-file",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ARNOB663/vision2component-websight-jsx-vue-extension.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ARNOB663/vision2component-websight-jsx-vue-extension/issues"
+  },
+  "homepage": "https://github.com/ARNOB663/vision2component-websight-jsx-vue-extension#readme",
+  "dependencies": {
+    "@babel/parser": "^7.29.0",
+    "@vue/compiler-sfc": "^3.5.27"
+  }
+}

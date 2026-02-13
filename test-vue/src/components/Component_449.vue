@@ -1,0 +1,38 @@
+<template>
+  <div :class="`bg-${featuredCollection}`" class="flex">
+    <!-- Left side menu -->
+    <div class="w-1/4 bg-white p-4">
+      <h2 class="text-lg font-bold">Menu</h2>
+      <ul>
+        <li><a href="#">Home</a></li>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+
+    <!-- Center focused product display -->
+    <div class="w-3/4 p-4">
+      <h1 class="text-2xl font-bold">Welcome to our fashion brand</h1>
+      <p class="my-4">
+        We are a fashion brand that specializes in creating unique and stylish clothing for all occasions. Our collections are designed to make you feel confident and beautiful.
+      </p>
+      <div class="flex flex-wrap">
+        <!-- Product cards -->
+        <div class="w-1/3 p-2">
+          <div class="bg-white p-4">
+            <img src="https://static.photos/fashion/900x600/51.webp" alt="Product 1">
+            <h3 class="text-lg font-bold">Product 1</h3>
+            <p>$100</p>
+          </div>
+        </div>
+        <!-- More product cards -->
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+
+const featuredCollection = ref('gray-100');
+</script>

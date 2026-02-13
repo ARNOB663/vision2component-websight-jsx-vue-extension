@@ -1,0 +1,39 @@
+import React from 'react';
+
+const GeneratedComponent = () => {
+  return (
+    <div className="bg-gray-100 font-sans leading-normal tracking-normal">
+      <div className="container w-full md:max-w-3xl mx-auto pt-20">
+        <div className="w-full px-4 md:px-6 text-xl text-gray-800 leading-normal" style={{ fontFamily: "'Source Sans Pro', sans-serif;" }}>
+          <div className="font-sans p-4 text-center">
+            <h1 className="text-4xl text-gray-900 font-bold leading-tight">Welcome to our Travel Agency</h1>
+            <p className="text-base text-gray-600 leading-relaxed mt-6">
+              We are a dynamic and engaging travel agency that offers a wide range of travel destinations. Our experienced team is dedicated to providing you with the best service and ensuring your trip is unforgettable. Whether you're looking for a relaxing beach vacation, an adventurous trek, or a cultural experience, we have something for everyone.
+            </p>
+          </div>
+          <div className="flex flex-wrap -mx-4 overflow-hidden">
+            <div className="my-4 px-4 w-full overflow-hidden md:w-1/2">
+              <img className="rounded-lg" src="https://picsum.photos/seed/56/900/600" alt="Travel Image" />
+            </div>
+            <div className="my-4 px-4 w-full overflow-hidden md:w-1/2">
+              <img className="rounded-lg" src="https://picsum.photos/seed/56/900/600" alt="Destination Image" />
+            </div>
+          </div>
+          <div className="flex flex-wrap -mx-4 overflow-hidden">
+            <div className="my-4 px-4 w-full overflow-hidden md:w-1/2">
+              <img className="rounded-lg" src="https://picsum.photos/seed/56/900/600" alt="Adventure Image" />
+            </div>
+            <div className="my-4 px-4 w-full overflow-hidden md:w-1/2">
+              <img className="rounded-lg" src="https://picsum.photos/seed/56/900/600" alt="Culture Image" />
+            </div>
+          </div>
+          <div className="text-center mt-10">
+            <a href="#" className="no-underline inline-block bg-gray-900 hover:bg-gray-800 text-white hover:text-gray-300 font-bold py-2 px-4 rounded">Book Now</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default GeneratedComponent;

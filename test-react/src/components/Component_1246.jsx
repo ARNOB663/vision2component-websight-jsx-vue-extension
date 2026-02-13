@@ -1,0 +1,35 @@
+import React from 'react';
+
+const GeneratedComponent = () => {
+  return (
+    <div className="bg-gray-100 font-sans leading-normal tracking-normal">
+      <header className="bg-white text-center">
+        <div className="container mx-auto flex flex-col p-5">
+          <h1 className="mb-4 text-3xl font-semibold leading-none tracking-tighter">Law Firm Name</h1>
+          <nav className="flex flex-col sm:flex-row">
+            <a href="#practice-areas" className="mb-2 sm:mb-0 sm:mr-2">Practice Areas</a>
+            <a href="#attorneys" className="mb-2 sm:mb-0 sm:mr-2">Attorneys</a>
+            <a href="#contact-us" className="mb-2 sm:mb-0 sm:mr-2">Contact Us</a>
+          </nav>
+        </div>
+      </header>
+
+      <section id="practice-areas" className="container mx-auto p-5">
+        <h2 className="mb-4 text-2xl font-semibold leading-none tracking-tighter">Practice Areas</h2>
+        <p>Our law firm provides legal services in various areas including criminal law, civil law, family law, and business law. We are committed to providing high-quality legal services to our clients.</p>
+      </section>
+
+      <section id="attorneys" className="container mx-auto p-5">
+        <h2 className="mb-4 text-2xl font-semibold leading-none tracking-tighter">Attorneys</h2>
+        <p>Our team of attorneys are experienced and dedicated to providing the best legal advice and representation to our clients. We have a diverse range of attorneys, each with their own areas of expertise.</p>
+      </section>
+
+      <section id="contact-us" className="container mx-auto p-5">
+        <h2 className="mb-4 text-2xl font-semibold leading-none tracking-tighter">Contact Us</h2>
+        <p>We would love to hear from you. Please contact us for more information about our services or to schedule a consultation.</p>
+      </section>
+    </div>
+  );
+};
+
+export default GeneratedComponent;
