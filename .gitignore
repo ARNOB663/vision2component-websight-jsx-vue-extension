@@ -49,6 +49,10 @@ package-lock.json
 test-react/node_modules/
 test-vue/node_modules/
 
+# Generated Components
+test-react/src/components/Component_*.jsx
+test-vue/src/components/Component_*.vue
+
 # IDE
 .vscode/
 .idea/
