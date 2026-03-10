@@ -10,9 +10,16 @@ datasets/
 *.jpeg
 *.gif
 *.mp4
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
 *.pth
 *.pkl
 *.pkl.gz
+*.safetensors
+*.bin
 
 # Python
 __pycache__/
@@ -63,6 +70,14 @@ test-vue/src/components/Component_*.vue
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb_checkpoints
+
+# Fine-tuning artifacts
+finetuning/models/
+finetuning/outputs/
+finetuning/results/
+finetuning/data/
+finetuning/data_mac/
+finetuning - Apple silicon/
 
 # Logs
 *.log

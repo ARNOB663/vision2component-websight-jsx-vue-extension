@@ -555,10 +555,6 @@ def process_batch(rows: pd.DataFrame, batch_indices: List[int], repair_tries: in
 
     return results
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# MAIN
-# ═══════════════════════════════════════════════════════════════════════════════
 def main():
     parser = argparse.ArgumentParser(description="HTML -> JSX + Vue pipeline (Optimized)")
     parser.add_argument("--samples", default="5", help="Number of samples to process, or 'all'")

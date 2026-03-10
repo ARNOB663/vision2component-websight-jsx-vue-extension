@@ -1,1 +1,4 @@
 @import "tailwindcss";
+
+/* Explicitly tell Tailwind v4 to scan all Vue component files for classes */
+@source "./components/*.vue";
