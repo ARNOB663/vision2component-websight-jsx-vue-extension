@@ -1,6 +1,6 @@
-# Fine-Tuning Qwen2-VL-2B with LoRA, QLoRA, DoRA
+# Fine-Tuning Qwen2-VL-2B with QLoRA
 
-Fine-tune `Qwen/Qwen2-VL-2B-Instruct` (vision-language model) for multi-task UI screenshot-to-code generation (HTML, React JSX, Vue SFC) using three parameter-efficient methods, then evaluate and compare.
+Fine-tune `Qwen/Qwen2-VL-2B-Instruct` (vision-language model) for multi-task UI screenshot-to-code generation (HTML, React JSX, Vue SFC) using QLoRA, then evaluate and compare against the base model.
 
 ## Prerequisites
 
@@ -14,18 +14,21 @@ pip install -r requirements.txt
 python -m playwright install chromium
 ```
 
-### Apple Silicon (Mac)
+## Step 0: Download Base Models
 
-- Use **LoRA/DoRA** on MPS (Apple GPU). **QLoRA is CUDA-only**.
-- Install deps with `finetuning/requirements-mac.txt`.
-- See `finetuning/APPLE_SILICON_CONTEXT.md` for the exact workflow (including fixing Windows `file:///E:/...` image paths).
+The `Qwen2-VL-2B` base model is downloaded automatically during training. 
+However, to evaluate the updated **Qwen2.5-VL-3B-Instruct** model, run its dedicated download script first:
+
+```powershell
+.venv311\Scripts\python.exe download_qwen2_5.py
+```
 
 ## Pipeline Overview
 
 ```
 prepare_data.py  -->  train.py  -->  evaluate.py  -->  visual_eval.py  -->  compare_results.py
-   (filter &          (fine-tune      (code metrics:     (render & compare    (tables, charts,
-    split data)        3 methods)      PSR, BLEU, etc.)   SSIM, PSNR)          LaTeX, ranking)
+   (filter &          (QLoRA         (code metrics:     (render & compare    (tables, charts,
+    split data)        fine-tune)     PSR, BLEU, etc.)   SSIM, PSNR)          LaTeX, ranking)
 ```
 
 ## Step 1: Prepare Data
@@ -40,69 +43,120 @@ py -3.11 finetuning/prepare_data.py
 
 **Split:** 85% train / 10% val / 5% test (grouped by image ID so all 3 tasks for the same image stay in the same split).
 
-## Step 2: Fine-Tune
+## Step 2: Fine-Tune (QLoRA)
 
-Train one method at a time (each uses the same hyperparameters for fair comparison). The base model is downloaded automatically to `finetuning/models/` on first run.
+Train the model using QLoRA (4-bit quantized base model with LoRA adapters). The base model is downloaded automatically to `finetuning/models/` on first run.
 
 ```powershell
-# QLoRA (recommended first -- lowest VRAM usage)
-py -3.11 finetuning/train.py --method qlora
-
-# LoRA
-py -3.11 finetuning/train.py --method lora
-
-# DoRA
-py -3.11 finetuning/train.py --method dora
+# Train
+py -3.11 finetuning/train.py
 
 # Resume interrupted training (picks up from last checkpoint)
-py -3.11 finetuning/train.py --method qlora --resume
-py -3.11 finetuning/train.py --method lora --resume
-py -3.11 finetuning/train.py --method dora --resume
+py -3.11 finetuning/train.py --resume
 ```
 
-**Where checkpoints are saved:** In this directory, under `finetuning/outputs/{method}/` (e.g. `finetuning/outputs/qlora/checkpoint-500`, `checkpoint-1000`, …). `--resume` uses the latest checkpoint in that folder.
+**Where checkpoints are saved:** In `finetuning/outputs/qlora/` (e.g. `checkpoint-500`, `checkpoint-1000`, …). `--resume` uses the latest checkpoint.
 
-**Checkpointing:** A checkpoint is saved at the end of each epoch (or every N steps if configured in configs) to `finetuning/outputs/{method}/`. If your PC shuts down mid-training, use `--resume` to continue from the last saved checkpoint instead of restarting.
+**Timing note:** The live tqdm `s/it` estimate can drift after resume, logging, or checkpoint saves. Prefer the script's `Measured timing: ... sec/step` line for the real recent throughput; that measured value is also written into `finetuning/results/qlora_training_metrics.json`.
 
-**Evaluation during training:** Disabled by default (`eval_strategy: no`). After training finishes, the script saves the adapter, clears GPU memory, then runs **one validation pass** on `val.jsonl` (eval loss only) and writes `final_eval_loss` into the metrics file. This avoids OOM that can occur when validating during training.
+**Evaluation during training:** Disabled by default (`eval_strategy: no`). After training finishes, the script saves the adapter, clears GPU memory, then runs **one validation pass** on `val.jsonl` (eval loss only) and writes `final_eval_loss` into the metrics file.
 
 **Resume behaviour:**
 - **Training:** Use `--resume` to continue from the last checkpoint (e.g. after a crash or timeout).
-- **Validation only:** If training completed (adapter saved) but the run stopped before or during validation, run the same command again **without** `--resume`. The script will detect the saved adapter, run validation only, and update the metrics file.
+- **Validation only:** If training completed (adapter saved) but the run stopped before validation, run the same command again **without** `--resume`. The script will detect the saved adapter, run validation only, and update the metrics file.
 
-**Output:** Adapter in `finetuning/outputs/{method}/final_adapter/`, metrics (including `final_eval_loss`) in `finetuning/results/{method}_training_metrics.json`.
+**Output:** Adapter in `finetuning/outputs/qlora/final_adapter/`, metrics in `finetuning/results/qlora_training_metrics.json`.
 
-### Method Differences
+### QLoRA Hyperparameters
 
-| Method | Base Model Precision | Adapter | Key Difference |
-|--------|---------------------|---------|----------------|
-| LoRA   | fp16/bf16           | Low-rank matrices on linear layers | Standard baseline |
-| QLoRA  | 4-bit NF4           | Same LoRA adapters, quantized base | ~50% less VRAM |
-| DoRA   | fp16/bf16           | Weight-decomposed LoRA (magnitude + direction) | Better adaptation stability |
-
-### Shared Hyperparameters
-
-- Learning rate: 1e-4, warmup: 10%
+- Learning rate: 1e-4, warmup: 100 steps
 - Epochs: 3, batch size: 1, gradient accumulation: 8
 - LoRA rank: 64, alpha: 128, dropout: 0.05
 - Target modules: q/k/v/o/gate/up/down projections
+- Quantization: 4-bit NF4 with double quantization
 - Gradient checkpointing: enabled
 
-Configs are in `finetuning/configs/{method}.json` -- edit these to tune hyperparameters.
+Config is in `finetuning/configs/qlora.json` — edit to tune hyperparameters.
 
 ## Step 3: Evaluate (Code Metrics)
 
-Run inference on the test set and compute code-quality metrics. Also supports `--method base` to test the un-finetuned model as a zero-shot baseline.
+Run inference on the test set and compute code-quality metrics. Supports `--method base` to test the un-finetuned model as a zero-shot baseline.
+
+**Activate the virtual environment first:**
+```powershell
+.venv311\Scripts\activate
+```
+
+### Run Evaluation
 
 ```powershell
-py -3.11 finetuning/evaluate.py --method qlora
-py -3.11 finetuning/evaluate.py --method lora
-py -3.11 finetuning/evaluate.py --method dora
-py -3.11 finetuning/evaluate.py --method base    # zero-shot baseline
-
-# Test on a smaller subset first
-py -3.11 finetuning/evaluate.py --method qlora --max-samples 50
+.venv311\Scripts\python.exe evaluate.py --method base     # zero-shot baseline Qwen2-VL
+.venv311\Scripts\python.exe evaluate.py --method qwen2.5    # zero-shot baseline Qwen2.5-VL (run download_qwen2_5.py first)
+.venv311\Scripts\python.exe evaluate.py --method qlora    # fine-tuned model
+ .venv311\Scripts\python.exe evaluate.py --method qwen2.5 --batch-size 20
+ .venv311\Scripts\python.exe evaluate.py --method qwen2.5 --resume-from-autosave --batch-size 20
 ```
+
+### Resume After Interruption
+
+```powershell
+.venv311\Scripts\python.exe evaluate.py --method qlora --resume-from-autosave
+```
+
+### Adjust Batch Size & Samples
+
+```powershell
+# Quick test run (8 samples)
+.venv311\Scripts\python.exe evaluate.py --method base --max-samples 8 --batch-size 2
+
+# Increase batch size for faster speed (watch VRAM)
+.venv311\Scripts\python.exe evaluate.py --method qlora --batch-size 20
+
+# Evaluate more samples
+.venv311\Scripts\python.exe evaluate.py --method qlora --max-samples 500
+```
+
+### BERTScore (Separate Pass)
+
+```powershell
+.venv311\Scripts\python.exe evaluate.py --method qlora --bertscore-only
+```
+
+### All CLI Arguments
+
+| Argument | Default | Description |
+|---|---|---|
+| `--method` | *required* | `base` or `qlora` |
+| `--batch-size` | `4` | Samples per batch. Watch VRAM in terminal to tune. |
+| `--max-samples` | all | Number of test samples to evaluate |
+| `--max-new-tokens` | `1536` | Max generated tokens (covers 99.8% of references) |
+| `--save-every` | `50` | Autosave progress every N samples (0 to disable) |
+| `--resume-from-autosave` | off | Resume from last checkpoint |
+| `--with-bertscore` | off | Include BERTScore (slow) |
+| `--bertscore-only` | off | Compute BERTScore from saved predictions only |
+| `--test-file` | `data/test.jsonl` | Path to test JSONL file |
+
+### VRAM Monitoring
+
+During inference, the progress bar shows **live VRAM usage**:
+
+```
+Inference:  12/300 [02:30<1:00:00, 3.2s/sample | VRAM: 5.2/12.0GiB used, 6.8GiB free]
+```
+
+- **`free` > 3 GiB**: Safe to increase `--batch-size`
+- **`free` < 1 GiB**: Reduce `--batch-size` to avoid OOM
+
+### Speed Optimizations (Applied Automatically)
+
+| Optimization | Effect |
+|---|---|
+| Flash Attention 2 / SDPA | ~30-50% faster attention |
+| Pre-resized images (`images_small/`) | Fewer vision tokens |
+| `min_pixels` / `max_pixels` cap | Controls vision token count |
+| Batch inference (default 4) | Better GPU utilization |
+| `cudnn.benchmark` | Faster convolutions |
+| `torch.inference_mode()` | Faster than `no_grad()` |
 
 ### Metrics Computed
 
@@ -113,33 +167,47 @@ py -3.11 finetuning/evaluate.py --method qlora --max-samples 50
 | **CodeBLEU** | Code-aware BLEU (syntax + dataflow + AST match) |
 | **ROUGE-L** | Longest common subsequence similarity |
 | **ChrF** | Character n-gram F-score |
+| **METEOR** | Precision/recall with synonym awareness |
+| **Edit Similarity** | 1 − normalized Levenshtein distance |
+| **Exact Match Rate** | % of outputs identical to reference |
+| **BERTScore F1** | Semantic similarity using contextual embeddings |
+| **Tag Accuracy** | Fraction of reference HTML/JSX tags recovered |
+| **CSS/Tailwind Class Accuracy** | Fraction of reference classes recovered |
+| **Tree Edit Similarity** | Similarity of DOM tag sequence structure |
+| **Token-level Accuracy** | Exact token match ratio |
 | **Inference Latency** | Average seconds per generation |
 
 **Output:** `finetuning/results/{method}_eval_results.json`, `{method}_predictions.json`
 
-## Step 4: Visual Evaluation (SSIM / PSNR)
+## Step 4: Visual Evaluation (SSIM / PSNR / LPIPS)
 
 Renders generated code in a headless Chromium browser, screenshots it, and compares pixel-by-pixel against the original WebSight screenshot.
 
 ```powershell
-py -3.11 finetuning/visual_eval.py --method qlora
-py -3.11 finetuning/visual_eval.py --method lora
-py -3.11 finetuning/visual_eval.py --method dora
+.venv311\Scripts\python.exe visual_eval.py --method qlora
+.venv311\Scripts\python.exe visual_eval.py --method base
+.venv311\Scripts\python.exe visual_eval.py --method qwen2.5
 
 # Limit samples for faster testing
-py -3.11 finetuning/visual_eval.py --method qlora --max-samples 50
+.venv311\Scripts\python.exe visual_eval.py --method qlora --max-samples 50
 ```
 
-| Metric | What It Measures |
-|--------|-----------------|
-| **SSIM** | Structural similarity (layout, contrast, luminance) |
-| **PSNR** | Peak signal-to-noise ratio (pixel-level accuracy) |
+### All CLI Arguments
+
+| Argument | Default | Description |
+|---|---|---|
+| `--method` | *required* | `base` or `qlora` |
+| `--max-samples` | all | Max samples per task to evaluate |
+| `--save-every` | `50` | Autosave progress every N samples |
+| `--no-resume` | off | Ignore checkpoint, start from scratch |
+| `--concurrent-pages` | `10` | Chromium tabs for parallel rendering |
+| `--render-wait` | `500` | Milliseconds to wait after page load |
 
 **Output:** `finetuning/results/{method}_visual_results.json`, rendered screenshots in `finetuning/results/{method}_renders/`
 
 ## Step 5: Compare Results
 
-Generates comparison tables, bar charts, radar plots, and a LaTeX-ready table across all evaluated methods.
+Generates comparison tables, bar charts, radar plots, and a LaTeX-ready table comparing base model vs QLoRA.
 
 ```powershell
 py -3.11 finetuning/compare_results.py
@@ -147,30 +215,26 @@ py -3.11 finetuning/compare_results.py
 
 **Output:**
 - Console: formatted comparison tables + overall ranking
-- `finetuning/results/charts/metrics_comparison.png` -- bar charts
-- `finetuning/results/charts/radar_comparison.png` -- radar plot
-- `finetuning/results/charts/per_task_comparison.png` -- per-task breakdown
-- `finetuning/results/comparison_table.tex` -- LaTeX table for thesis
+- `finetuning/results/charts/metrics_comparison.png` — bar charts
+- `finetuning/results/charts/radar_comparison.png` — radar plot
+- `finetuning/results/charts/per_task_comparison.png` — per-task breakdown
+- `finetuning/results/comparison_table.tex` — LaTeX table for thesis
 
 ## Folder Structure
 
 ```
 finetuning/
 ├── prepare_data.py        # Filter CSV, create multi-task JSONL, split
-├── train.py               # Unified trainer: --method lora|qlora|dora
+├── train.py               # QLoRA trainer
 ├── evaluate.py            # Inference + code metrics (PSR, BLEU, CodeBLEU, etc.)
 ├── visual_eval.py         # Render components + SSIM/PSNR comparison
-├── compare_results.py     # Tables, charts, LaTeX output, ranking
+├── compare_results.py     # Base vs QLoRA: tables, charts, LaTeX output
 ├── configs/
-│   ├── lora.json          # LoRA hyperparameters
-│   ├── qlora.json         # QLoRA hyperparameters
-│   └── dora.json          # DoRA hyperparameters
+│   └── qlora.json         # QLoRA hyperparameters
 ├── models/                # Base model (auto-downloaded)
 ├── data/                  # Train/val/test splits (auto-generated)
 ├── outputs/               # Adapter checkpoints (auto-generated)
-│   ├── lora/
-│   ├── qlora/
-│   └── dora/
+│   └── qlora/
 └── results/               # Evaluation outputs (auto-generated)
     └── charts/
 ```
@@ -181,47 +245,23 @@ finetuning/
 # 1. Prepare data
 py -3.11 finetuning/prepare_data.py
 
-# 2. Fine-tune with QLoRA (fastest, least VRAM)
-py -3.11 finetuning/train.py --method qlora
+# 2. Fine-tune with QLoRA
+py -3.11 finetuning/train.py
 
-# 3. Evaluate
+# 3. Evaluate models
+# Download the new Qwen2.5-VL base model first
+py -3.11 finetuning/download_qwen2_5.py
+
+# Run evaluations
+py -3.11 finetuning/evaluate.py --method base
+py -3.11 finetuning/evaluate.py --method qwen2.5
 py -3.11 finetuning/evaluate.py --method qlora
 
 # 4. Visual eval
-py -3.11 finetuning/visual_eval.py --method qlora --max-samples 50
+.venv311\Scripts\python.exe visual_eval.py --method base
+.venv311\Scripts\python.exe visual_eval.py --method qwen2.5
+.venv311\Scripts\python.exe visual_eval.py --method qlora
 
-# 5. Repeat steps 2-4 for lora and dora, then compare
+# 5. Compare
 py -3.11 finetuning/compare_results.py
 ```
-
-## Running on Kaggle (Recommended for LoRA/DoRA)
-
-LoRA and DoRA require fp16 (no quantization) which needs 15+ GB VRAM. Use Kaggle's free GPU T4 x2 instead of your local 8GB GPU.
-
-### Setup
-
-1. Go to [kaggle.com](https://kaggle.com), verify your phone number to unlock free GPU
-2. Create a new Notebook, set Accelerator to **GPU T4 x2**, enable **Internet**
-
-### Upload Data
-
-Prepare two zip files on your local machine:
-
-```
-finetune-data.zip       -> contains train.jsonl, val.jsonl, test.jsonl
-websight-images.zip     -> contains images/ folder with all PNGs
-```
-
-Upload both as Kaggle Datasets (Your Profile -> Datasets -> New Dataset), then add them to the notebook via "Add Data".
-
-### Run
-
-1. Upload `finetuning/kaggle_finetune.ipynb` to Kaggle
-2. Run cells 1-6 (setup, data, configs, imports, training function, eval function)
-3. In cell 7, set `METHOD = "qlora"` and run training
-4. In cell 8, run evaluation
-5. In cell 10, download results zip
-
-**Run one method per session** (12hr Kaggle limit). Change `METHOD` to `"lora"` or `"dora"` in subsequent sessions.
-
-After all three are done, run cell 9 (Compare Results) to generate comparison tables and charts.

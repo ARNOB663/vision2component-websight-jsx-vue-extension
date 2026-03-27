@@ -19,5 +19,7 @@ qwen-vl-utils
 sacrebleu
 rouge-score
 codebleu
+nltk
+python-Levenshtein
 scikit-image
 playwright

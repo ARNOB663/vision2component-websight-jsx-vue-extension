@@ -12,7 +12,6 @@
     "lora_r": 64,
     "lora_alpha": 128,
     "lora_dropout": 0.05,
-    "use_dora": false,
     "target_modules": [
         "q_proj", "k_proj", "v_proj", "o_proj",
         "gate_proj", "up_proj", "down_proj"
@@ -33,7 +32,7 @@
     "save_steps": 100,
     "eval_strategy": "no",
     "eval_steps": 500,
-    "save_total_limit": 1,
+    "save_total_limit": 2,
     "dataloader_num_workers": 2,
     "per_device_eval_batch_size": 1,
     "seed": 42

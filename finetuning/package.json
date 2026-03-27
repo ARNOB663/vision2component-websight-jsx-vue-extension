@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@babel/parser": "^7.29.2",
+    "@vue/compiler-sfc": "^3.5.30"
+  }
+}

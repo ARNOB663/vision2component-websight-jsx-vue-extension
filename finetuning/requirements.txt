@@ -1,0 +1,28 @@
+--index-url https://download.pytorch.org/whl/cu121
+--extra-index-url https://pypi.org/simple
+
+torch==2.5.1+cu121
+torchvision==0.20.1+cu121
+torchaudio==2.5.1+cu121
+transformers
+datasets
+accelerate
+peft
+numpy
+pandas
+tqdm
+pillow
+matplotlib
+jupyterlab
+ipywidgets
+sentencepiece
+trl
+qwen-vl-utils
+sacrebleu
+rouge-score
+codebleu
+scikit-image
+playwright
+python-Levenshtein
+nltk
+beautifulsoup4

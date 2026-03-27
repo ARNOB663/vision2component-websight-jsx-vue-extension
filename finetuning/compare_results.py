@@ -1,5 +1,5 @@
 """
-Compare LoRA vs QLoRA vs DoRA evaluation results.
+Compare Base vs QLoRA evaluation results.
 
 Loads results JSONs produced by evaluate.py and visual_eval.py,
 generates comparison tables, bar charts, and radar plots.
@@ -25,15 +25,15 @@ matplotlib.rcParams["savefig.bbox"] = "tight"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = PROJECT_ROOT / "finetuning" / "results"
 CHARTS_DIR = RESULTS_DIR / "charts"
-METHODS = ["lora", "qlora", "dora"]
-METHOD_LABELS = {"lora": "LoRA", "qlora": "QLoRA", "dora": "DoRA"}
+METHODS = ["base", "qwen2.5", "qlora"]
+METHOD_LABELS = {"base": "Base (Zero-Shot)", "qlora": "QLoRA", "qwen2.5": "Qwen2.5-VL"}
 TASKS = ["html", "jsx", "vue"]
 
 
 def load_json(path):
     if not path.exists():
         return None
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -66,12 +66,12 @@ def load_all_results():
 # TABLES
 # ═══════════════════════════════════════════════════════════════════════════════
 def print_training_table(data):
-    print("\n" + "=" * 80)
-    print("  TRAINING EFFICIENCY COMPARISON")
-    print("=" * 80)
-    header = f"{'Metric':<28} {'LoRA':>14} {'QLoRA':>14} {'DoRA':>14}"
+    print("\n" + "=" * 65)
+    print("  TRAINING EFFICIENCY (QLoRA)")
+    print("=" * 65)
+    header = f"{'Metric':<28} {'QLoRA':>14}"
     print(header)
-    print("-" * 80)
+    print("-" * 65)
 
     rows = [
         ("Trainable Params", "trainable_params", lambda v: f"{v:,}"),
@@ -83,21 +83,19 @@ def print_training_table(data):
     ]
 
     for label, key, fmt in rows:
-        vals = []
-        for m in METHODS:
-            t = data.get(m, {}).get("training", {})
-            v = t.get(key)
-            vals.append(fmt(v) if v is not None else "N/A")
-        print(f"  {label:<26} {vals[0]:>14} {vals[1]:>14} {vals[2]:>14}")
+        t = data.get("qlora", {}).get("training", {})
+        v = t.get(key)
+        val = fmt(v) if v is not None else "N/A"
+        print(f"  {label:<26} {val:>14}")
 
 
 def print_code_metrics_table(data):
-    print("\n" + "=" * 80)
+    print("\n" + "=" * 65)
     print("  CODE QUALITY METRICS (averaged across tasks)")
-    print("=" * 80)
-    header = f"{'Metric':<28} {'LoRA':>14} {'QLoRA':>14} {'DoRA':>14}"
+    print("=" * 65)
+    header = f"{'Metric':<28} {'Base':>14} {'Qwen2.5':>14} {'QLoRA':>14}"
     print(header)
-    print("-" * 80)
+    print("-" * 65)
 
     metrics = [
         ("Parse Success Rate", "avg_parse_success_rate", lambda v: f"{v:.2%}"),
@@ -105,6 +103,14 @@ def print_code_metrics_table(data):
         ("CodeBLEU", "avg_codebleu", lambda v: f"{v:.4f}"),
         ("ROUGE-L", "avg_rouge_l", lambda v: f"{v:.4f}"),
         ("ChrF", "avg_chrf", lambda v: f"{v:.4f}"),
+        ("METEOR", "avg_meteor", lambda v: f"{v:.4f}"),
+        ("Edit Similarity", "avg_edit_similarity", lambda v: f"{v:.4f}"),
+        ("Exact Match Rate", "avg_exact_match_rate", lambda v: f"{v:.2%}"),
+        ("BERTScore F1", "avg_bert_score_f1", lambda v: f"{v:.4f}"),
+        ("Tag Accuracy", "avg_tag_accuracy", lambda v: f"{v:.4f}"),
+        ("CSS Class Acc", "avg_css_class_accuracy", lambda v: f"{v:.4f}"),
+        ("Tree Edit Sim", "avg_tree_edit_similarity", lambda v: f"{v:.4f}"),
+        ("Token Accuracy", "avg_token_accuracy", lambda v: f"{v:.4f}"),
         ("Avg Latency (s)", "avg_inference_latency_s", lambda v: f"{v:.2f}"),
     ]
 
@@ -119,7 +125,10 @@ def print_code_metrics_table(data):
     # Per-task breakdown
     for task in TASKS:
         print(f"\n  --- {task.upper()} ---")
-        task_metrics = ["parse_success_rate", "bleu4", "codebleu", "rouge_l", "chrf"]
+        task_metrics = ["parse_success_rate", "bleu4", "codebleu", "rouge_l", "chrf",
+                        "meteor", "edit_similarity", "exact_match_rate",
+                        "bert_score_f1", "tag_accuracy", "css_class_accuracy",
+                        "tree_edit_similarity", "token_accuracy"]
         for metric in task_metrics:
             vals = []
             for m in METHODS:
@@ -127,7 +136,7 @@ def print_code_metrics_table(data):
                 pt = e.get("per_task", {}).get(task, {})
                 v = pt.get(metric)
                 if v is not None:
-                    if metric == "parse_success_rate":
+                    if metric == "parse_success_rate" or metric == "exact_match_rate":
                         vals.append(f"{v:.2%}")
                     else:
                         vals.append(f"{v:.4f}")
@@ -137,36 +146,49 @@ def print_code_metrics_table(data):
 
 
 def print_visual_table(data):
-    print("\n" + "=" * 80)
+    print("\n" + "=" * 65)
     print("  VISUAL FIDELITY METRICS")
-    print("=" * 80)
+    print("=" * 65)
 
-    header = f"{'Metric':<28} {'LoRA':>14} {'QLoRA':>14} {'DoRA':>14}"
+    header = f"{'Metric':<28} {'Base':>14} {'Qwen2.5':>14} {'QLoRA':>14}"
     print(header)
-    print("-" * 80)
+    print("-" * 65)
 
-    for metric, fmt in [("avg_ssim", lambda v: f"{v:.4f}"), ("avg_psnr", lambda v: f"{v:.2f}")]:
+    for metric, fmt in [("avg_ssim", lambda v: f"{v:.4f}"), ("avg_psnr", lambda v: f"{v:.2f}"), ("avg_lpips", lambda v: f"{v:.4f}")]:
         vals = []
         for m in METHODS:
             vis = data.get(m, {}).get("visual", {})
             v = vis.get(metric)
             vals.append(fmt(v) if v is not None else "N/A")
-        label = "SSIM (avg)" if "ssim" in metric else "PSNR (avg)"
+        if "ssim" in metric:
+            label = "SSIM (avg)"
+        elif "psnr" in metric:
+            label = "PSNR (avg)"
+        else:
+            label = "LPIPS (avg, lower=better)"
         print(f"  {label:<26} {vals[0]:>14} {vals[1]:>14} {vals[2]:>14}")
 
     for task in TASKS:
         print(f"\n  --- {task.upper()} ---")
-        for metric in ["avg_ssim", "avg_psnr"]:
+        for metric in ["avg_ssim", "avg_psnr", "avg_lpips"]:
             vals = []
             for m in METHODS:
                 vis = data.get(m, {}).get("visual", {})
                 pt = vis.get("per_task", {}).get(task, {})
                 v = pt.get(metric)
                 if v is not None:
-                    vals.append(f"{v:.4f}" if "ssim" in metric else f"{v:.2f}")
+                    if "psnr" in metric:
+                        vals.append(f"{v:.2f}")
+                    else:
+                        vals.append(f"{v:.4f}")
                 else:
                     vals.append("N/A")
-            label = "SSIM" if "ssim" in metric else "PSNR"
+            if "ssim" in metric:
+                label = "SSIM"
+            elif "psnr" in metric:
+                label = "PSNR"
+            else:
+                label = "LPIPS"
             print(f"    {label:<24} {vals[0]:>14} {vals[1]:>14} {vals[2]:>14}")
 
 
@@ -178,15 +200,15 @@ def export_latex_table(data):
     lines = []
     lines.append(r"\begin{table}[h]")
     lines.append(r"\centering")
-    lines.append(r"\caption{Comparison of LoRA, QLoRA, and DoRA for UI Code Generation}")
+    lines.append(r"\caption{Base vs Qwen2.5 vs QLoRA Fine-Tuned Performance for UI Code Generation}")
     lines.append(r"\label{tab:comparison}")
     lines.append(r"\begin{tabular}{lccc}")
     lines.append(r"\hline")
-    lines.append(r"\textbf{Metric} & \textbf{LoRA} & \textbf{QLoRA} & \textbf{DoRA} \\")
+    lines.append(r"\textbf{Metric} & \textbf{Base (2B)} & \textbf{Qwen2.5 (3B)} & \textbf{QLoRA} \\")
     lines.append(r"\hline")
 
     rows = [
-        ("Trainable Params (\%)", "training", "trainable_pct", lambda v: f"{v*100:.2f}"),
+        ("Trainable Params (\\%)", "training", "trainable_pct", lambda v: f"{v*100:.2f}"),
         ("Peak VRAM (GiB)", "training", "peak_vram_gb", lambda v: f"{v:.2f}"),
         ("Training Time (hrs)", "training", "training_time_hours", lambda v: f"{v:.2f}"),
         ("Parse Success Rate", "eval", "avg_parse_success_rate", lambda v: f"{v*100:.1f}\\%"),
@@ -194,8 +216,17 @@ def export_latex_table(data):
         ("CodeBLEU", "eval", "avg_codebleu", lambda v: f"{v:.4f}"),
         ("ROUGE-L", "eval", "avg_rouge_l", lambda v: f"{v:.4f}"),
         ("ChrF", "eval", "avg_chrf", lambda v: f"{v:.4f}"),
+        ("METEOR", "eval", "avg_meteor", lambda v: f"{v:.4f}"),
+        ("Edit Similarity", "eval", "avg_edit_similarity", lambda v: f"{v:.4f}"),
+        ("Exact Match", "eval", "avg_exact_match_rate", lambda v: f"{v*100:.1f}\\%"),
+        ("BERTScore F1", "eval", "avg_bert_score_f1", lambda v: f"{v:.4f}"),
+        ("Tag Accuracy", "eval", "avg_tag_accuracy", lambda v: f"{v:.4f}"),
+        ("CSS Class Acc", "eval", "avg_css_class_accuracy", lambda v: f"{v:.4f}"),
+        ("Tree Edit Sim", "eval", "avg_tree_edit_similarity", lambda v: f"{v:.4f}"),
+        ("Token Accuracy", "eval", "avg_token_accuracy", lambda v: f"{v:.4f}"),
         ("SSIM", "visual", "avg_ssim", lambda v: f"{v:.4f}"),
         ("PSNR", "visual", "avg_psnr", lambda v: f"{v:.2f}"),
+        ("LPIPS", "visual", "avg_lpips", lambda v: f"{v:.4f}"),
         ("Inference Latency (s)", "eval", "avg_inference_latency_s", lambda v: f"{v:.2f}"),
     ]
 
@@ -216,7 +247,7 @@ def export_latex_table(data):
                 numeric_vals.append(None)
 
         higher_is_better = key not in ("peak_vram_gb", "training_time_hours",
-                                        "avg_inference_latency_s")
+                                        "avg_inference_latency_s", "avg_lpips")
         valid_nums = [n for n in numeric_vals if n is not None]
         if valid_nums:
             best = max(valid_nums) if higher_is_better else min(valid_nums)
@@ -236,7 +267,7 @@ def export_latex_table(data):
     lines.append(r"\end{table}")
 
     latex_path = RESULTS_DIR / "comparison_table.tex"
-    with open(latex_path, "w") as f:
+    with open(latex_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
 
     print(f"\n  LaTeX table saved to: {latex_path}")
@@ -248,7 +279,7 @@ def export_latex_table(data):
 def plot_bar_chart(data):
     """Bar charts for key metrics across methods."""
     CHARTS_DIR.mkdir(exist_ok=True)
-    colors = {"lora": "#4C78A8", "qlora": "#F58518", "dora": "#54A24B"}
+    colors = {"base": "#95A5A6", "qwen2.5": "#2E86C1", "qlora": "#F58518"}
 
     chart_metrics = [
         ("Parse Success Rate", "eval", "avg_parse_success_rate", True),
@@ -256,11 +287,13 @@ def plot_bar_chart(data):
         ("CodeBLEU", "eval", "avg_codebleu", True),
         ("ROUGE-L", "eval", "avg_rouge_l", True),
         ("ChrF", "eval", "avg_chrf", True),
-        ("Peak VRAM (GiB)", "training", "peak_vram_gb", False),
+        ("METEOR", "eval", "avg_meteor", True),
+        ("Edit Similarity", "eval", "avg_edit_similarity", True),
+        ("Peak VRAM (GiB)", "eval", "peak_vram_gb", False),
         ("Inference Latency (s)", "eval", "avg_inference_latency_s", False),
     ]
 
-    fig, axes = plt.subplots(2, 4, figsize=(18, 8))
+    fig, axes = plt.subplots(3, 3, figsize=(18, 12))
     axes = axes.flatten()
 
     for idx, (title, section, key, higher_better) in enumerate(chart_metrics):
@@ -276,7 +309,7 @@ def plot_bar_chart(data):
             method_names.append(METHOD_LABELS[m])
             bar_colors.append(colors[m])
 
-        bars = ax.bar(method_names, vals, color=bar_colors, width=0.5)
+        bars = ax.bar(method_names, vals, color=bar_colors, width=0.4)
 
         for bar, val in zip(bars, vals):
             ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
@@ -291,13 +324,14 @@ def plot_bar_chart(data):
         for i in range(len(chart_metrics), len(axes)):
             axes[i].set_visible(False)
 
-    plt.suptitle("LoRA vs QLoRA vs DoRA -- Evaluation Metrics", fontsize=14, fontweight="bold")
+    plt.suptitle("Base vs QLoRA -- Evaluation Metrics", fontsize=14, fontweight="bold")
     plt.tight_layout()
 
     path = CHARTS_DIR / "metrics_comparison.png"
     plt.savefig(path)
+    plt.savefig(path.with_suffix(".pdf"))
     plt.close()
-    print(f"  Bar chart saved to: {path}")
+    print(f"  Bar chart saved to: {path} and .pdf")
 
 
 def plot_radar_chart(data):
@@ -310,6 +344,10 @@ def plot_radar_chart(data):
         ("CodeBLEU", "eval", "avg_codebleu"),
         ("ROUGE-L", "eval", "avg_rouge_l"),
         ("ChrF", "eval", "avg_chrf"),
+        ("METEOR", "eval", "avg_meteor"),
+        ("EditSim", "eval", "avg_edit_similarity"),
+        ("BERTScr", "eval", "avg_bert_score_f1"),
+        ("TreeSim", "eval", "avg_tree_edit_similarity"),
     ]
 
     # Add visual metrics if available
@@ -339,7 +377,7 @@ def plot_radar_chart(data):
     angles += angles[:1]
 
     fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
-    colors = {"lora": "#4C78A8", "qlora": "#F58518", "dora": "#54A24B"}
+    colors = {"base": "#95A5A6", "qwen2.5": "#2E86C1", "qlora": "#F58518"}
 
     for m in METHODS:
         values = method_values[m] + method_values[m][:1]
@@ -350,26 +388,28 @@ def plot_radar_chart(data):
     ax.set_xticklabels(labels, fontsize=10)
     ax.set_ylim(0, 1.1)
     ax.legend(loc="upper right", bbox_to_anchor=(1.3, 1.1))
-    ax.set_title("Method Comparison (normalized)", fontsize=13, fontweight="bold", pad=20)
+    ax.set_title("Base vs QLoRA (normalized)", fontsize=13, fontweight="bold", pad=20)
 
     path = CHARTS_DIR / "radar_comparison.png"
     plt.savefig(path)
+    plt.savefig(path.with_suffix(".pdf"))
     plt.close()
-    print(f"  Radar chart saved to: {path}")
+    print(f"  Radar chart saved to: {path} and .pdf")
 
 
 def plot_per_task_bars(data):
-    """Grouped bar chart: per-task PSR and BLEU-4."""
+    """Grouped bar chart: per-task PSR, BLEU-4, and CodeBLEU."""
     CHARTS_DIR.mkdir(exist_ok=True)
 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    colors = {"lora": "#4C78A8", "qlora": "#F58518", "dora": "#54A24B"}
+    fig, axes = plt.subplots(1, 3, figsize=(20, 5))
+    colors = {"base": "#95A5A6", "qwen2.5": "#2E86C1", "qlora": "#F58518"}
     x = np.arange(len(TASKS))
     width = 0.25
 
     for ax, (metric, title, fmt) in zip(axes, [
         ("parse_success_rate", "Parse Success Rate by Task", "{:.1%}"),
         ("bleu4", "BLEU-4 by Task", "{:.4f}"),
+        ("codebleu", "CodeBLEU by Task", "{:.4f}"),
     ]):
         for i, m in enumerate(METHODS):
             vals = []
@@ -385,15 +425,16 @@ def plot_per_task_bars(data):
         ax.set_xlabel("Task")
         ax.set_ylabel(metric)
         ax.set_title(title, fontweight="bold")
-        ax.set_xticks(x + width)
+        ax.set_xticks(x + width / 2)
         ax.set_xticklabels([t.upper() for t in TASKS])
         ax.legend()
 
     plt.tight_layout()
     path = CHARTS_DIR / "per_task_comparison.png"
     plt.savefig(path)
+    plt.savefig(path.with_suffix(".pdf"))
     plt.close()
-    print(f"  Per-task chart saved to: {path}")
+    print(f"  Per-task chart saved to: {path} and .pdf")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -402,11 +443,15 @@ def plot_per_task_bars(data):
 def print_ranking(data):
     """Rank methods by a weighted composite score."""
     weights = {
-        "avg_parse_success_rate": 0.25,
-        "avg_bleu4": 0.15,
-        "avg_codebleu": 0.20,
-        "avg_rouge_l": 0.10,
-        "avg_chrf": 0.10,
+        "avg_parse_success_rate": 0.20,
+        "avg_bleu4": 0.10,
+        "avg_codebleu": 0.15,
+        "avg_rouge_l": 0.05,
+        "avg_chrf": 0.05,
+        "avg_meteor": 0.05,
+        "avg_edit_similarity": 0.05,
+        "avg_bert_score_f1": 0.10,
+        "avg_tree_edit_similarity": 0.15,
     }
 
     # Add visual weight if available
@@ -416,9 +461,9 @@ def print_ranking(data):
         total_w = sum(weights.values())
         weights = {k: v / total_w for k, v in weights.items()}
 
-    print("\n" + "=" * 80)
+    print("\n" + "=" * 65)
     print("  OVERALL RANKING")
-    print("=" * 80)
+    print("=" * 65)
 
     scores = {}
     for m in METHODS:
@@ -428,12 +473,18 @@ def print_ranking(data):
                 v = data.get(m, {}).get("visual", {}).get("avg_ssim", 0) or 0
             else:
                 v = data.get(m, {}).get("eval", {}).get(key, 0) or 0
+
             score += v * w
+        # Penalize for LPIPS (lower is better, so subtract weighted LPIPS)
+        lpips_val = data.get(m, {}).get("visual", {}).get("avg_lpips", None)
+        if lpips_val is not None:
+            score -= (lpips_val * 0.15)
+
         scores[m] = round(score, 4)
 
     ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     for rank, (method, score) in enumerate(ranked, 1):
-        print(f"  #{rank}  {METHOD_LABELS[method]:<8}  composite score: {score:.4f}")
+        print(f"  #{rank}  {METHOD_LABELS[method]:<20}  composite score: {score:.4f}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -455,7 +506,7 @@ def main():
         print(f"  Missing: {', '.join(METHOD_LABELS[m] for m in missing)}")
 
     # ── Tables ──
-    if any(data.get(m, {}).get("training") for m in METHODS):
+    if data.get("qlora", {}).get("training"):
         print_training_table(data)
 
     if any(data.get(m, {}).get("eval") for m in METHODS):

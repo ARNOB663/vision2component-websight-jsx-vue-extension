@@ -1,5 +1,5 @@
 """
-Fine-tune Qwen2-VL-2B-Instruct with LoRA, QLoRA, or DoRA.
+Fine-tune Qwen2-VL-2B-Instruct with QLoRA.
 
 Downloads the base model to finetuning/models/ on first run.
 Loads multi-task JSONL data prepared by prepare_data.py.
@@ -10,10 +10,8 @@ Resume behaviour:
   the script will detect the saved adapter and run validation only, then save metrics.
 
 Usage:
-    python finetuning/train.py --method lora
-    python finetuning/train.py --method qlora
-    python finetuning/train.py --method dora
-    python finetuning/train.py --method qlora --resume
+    python finetuning/train.py
+    python finetuning/train.py --resume
 """
 
 import os
@@ -32,6 +30,7 @@ from transformers import (
     BitsAndBytesConfig,
     TrainingArguments,
     Trainer,
+    TrainerCallback,
 )
 from peft import LoraConfig, get_peft_model, PeftModel, TaskType, prepare_model_for_kbit_training
 from torch.utils.data import Dataset
@@ -69,6 +68,61 @@ def cuda_max_allocated_gb():
     if not _has_cuda():
         return None
     return torch.cuda.max_memory_allocated() / 1024**3
+
+class StepTimingCallback(TrainerCallback):
+    """Track measured step timing so tqdm ETA can be sanity-checked."""
+
+    def __init__(self):
+        self.run_start_time = None
+        self.last_log_time = None
+        self.initial_step = None
+        self.last_log_step = 0
+        self.summary = {
+            "measured_avg_sec_per_step": None,
+            "measured_last_log_sec_per_step": None,
+            "measured_timing_logs": 0,
+        }
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        now = time.perf_counter()
+        self.run_start_time = now
+        self.last_log_time = now
+        self.initial_step = None
+        self.last_log_step = state.global_step
+
+    def on_step_begin(self, args, state, control, **kwargs):
+        if self.initial_step is None:
+            self.initial_step = state.global_step
+
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        if self.run_start_time is None or logs is None:
+            return
+
+        now = time.perf_counter()
+        elapsed = now - self.run_start_time
+        step_delta = state.global_step - self.last_log_step
+        time_delta = now - self.last_log_time
+
+        total_step_delta = state.global_step - (self.initial_step or 0)
+        overall_avg = None
+        if total_step_delta > 0 and elapsed > 0:
+            overall_avg = elapsed / total_step_delta
+            logs["measured_avg_sec_per_step"] = round(overall_avg, 3)
+            logs["measured_elapsed_min"] = round(elapsed / 60, 2)
+            self.summary["measured_avg_sec_per_step"] = round(overall_avg, 3)
+
+        if step_delta > 0 and time_delta > 0:
+            interval_avg = time_delta / step_delta
+            logs["measured_last_log_sec_per_step"] = round(interval_avg, 3)
+            self.summary["measured_last_log_sec_per_step"] = round(interval_avg, 3)
+            self.summary["measured_timing_logs"] += 1
+            print(
+                f"  Measured timing: {interval_avg:.2f} sec/step over last {step_delta} steps "
+                f"({overall_avg:.2f} sec/step overall)"
+            )
+
+        self.last_log_time = now
+        self.last_log_step = state.global_step
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -223,8 +277,7 @@ def load_model_and_processor(config: dict):
     if config.get("quantization"):
         if not _has_cuda():
             raise ValueError(
-                "QLoRA/4-bit quantization requires CUDA (bitsandbytes). "
-                "On Apple Silicon use --method lora or --method dora."
+                "QLoRA/4-bit quantization requires CUDA (bitsandbytes)."
             )
         q = config["quantization"]
         compute_dtype = getattr(torch, q.get("bnb_4bit_compute_dtype", "float16"))
@@ -255,6 +308,17 @@ def load_model_and_processor(config: dict):
     if not _has_cuda():
         model = model.to(device)
 
+    # ── Fix weight tying (transformers version mismatch workaround) ──
+    if hasattr(model.config, "tie_word_embeddings") and model.config.tie_word_embeddings:
+        embed_weight = None
+        for name, param in model.named_parameters():
+            if "embed_tokens.weight" in name:
+                embed_weight = param
+                break
+        if embed_weight is not None and model.lm_head.weight.data_ptr() != embed_weight.data_ptr():
+            print("  [FIX] Weight tying was broken. Manually tying lm_head to embed_tokens.")
+            model.lm_head.weight = embed_weight
+
     if quant_config:
         model = prepare_model_for_kbit_training(
             model, use_gradient_checkpointing=config.get("gradient_checkpointing", True)
@@ -276,7 +340,6 @@ def load_model_and_processor(config: dict):
         lora_dropout=config["lora_dropout"],
         target_modules=config["target_modules"],
         task_type=TaskType.CAUSAL_LM,
-        use_dora=config.get("use_dora", False),
     )
 
     model = get_peft_model(model, lora_config)
@@ -367,8 +430,7 @@ def load_model_for_eval(config: dict, adapter_dir: str):
     if config.get("quantization"):
         if not _has_cuda():
             raise ValueError(
-                "QLoRA/4-bit quantization requires CUDA (bitsandbytes). "
-                "On Apple Silicon use LoRA/DoRA."
+                "QLoRA/4-bit quantization requires CUDA (bitsandbytes)."
             )
         q = config["quantization"]
         compute_dtype = getattr(torch, q.get("bnb_4bit_compute_dtype", "float16"))
@@ -439,7 +501,8 @@ def run_validation_after_training(adapter_dir: str, config: dict):
 # ═══════════════════════════════════════════════════════════════════════════════
 # TRAINING
 # ═══════════════════════════════════════════════════════════════════════════════
-def train(method: str, resume: bool = False):
+def train(resume: bool = False):
+    method = "qlora"
     config_path = CONFIGS_DIR / f"{method}.json"
     if not config_path.exists():
         raise FileNotFoundError(f"Config not found: {config_path}")
@@ -539,12 +602,15 @@ def train(method: str, resume: bool = False):
         training_args_kw["greater_is_better"] = False
     training_args = TrainingArguments(**training_args_kw)
 
+    timing_callback = StepTimingCallback()
+
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_ds,
         eval_dataset=val_ds if do_eval else None,
         data_collator=VLDataCollator(pad_token_id=processor.tokenizer.pad_token_id),
+        callbacks=[timing_callback],
     )
 
     # ── Train ──
@@ -604,6 +670,9 @@ def train(method: str, resume: bool = False):
         "peak_vram_gb": round(peak_mem, 2) if peak_mem is not None else None,
         "training_time_hours": round(elapsed / 3600, 3),
         "training_time_seconds": round(elapsed, 1),
+        "measured_avg_sec_per_step": timing_callback.summary["measured_avg_sec_per_step"],
+        "measured_last_log_sec_per_step": timing_callback.summary["measured_last_log_sec_per_step"],
+        "measured_timing_logs": timing_callback.summary["measured_timing_logs"],
         "train_samples": len(train_ds),
         "val_samples": len(val_ds) if val_ds else 0,
         "final_train_loss": last_log.get("train_loss"),
@@ -612,7 +681,6 @@ def train(method: str, resume: bool = False):
         "lr": config["learning_rate"],
         "lora_r": config["lora_r"],
         "lora_alpha": config["lora_alpha"],
-        "use_dora": config.get("use_dora", False),
         "quantized": config.get("quantization") is not None,
     }
     results_dir.mkdir(exist_ok=True, parents=True)
@@ -633,18 +701,14 @@ def train(method: str, resume: bool = False):
 # MAIN
 # ═══════════════════════════════════════════════════════════════════════════════
 def main():
-    parser = argparse.ArgumentParser(description="Fine-tune Qwen2-VL-2B-Instruct")
-    parser.add_argument(
-        "--method", required=True, choices=["lora", "qlora", "dora"],
-        help="PEFT method to use",
-    )
+    parser = argparse.ArgumentParser(description="Fine-tune Qwen2-VL-2B-Instruct with QLoRA")
     parser.add_argument(
         "--resume", action="store_true",
         help="Resume training from last checkpoint",
     )
     args = parser.parse_args()
 
-    train(args.method, args.resume)
+    train(args.resume)
 
 
 if __name__ == "__main__":
