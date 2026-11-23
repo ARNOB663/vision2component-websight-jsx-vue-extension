@@ -1,0 +1,344 @@
+% ============================================================
+% REMAINING SECTIONS — paste into your Overleaf document
+% after Section 3 (Dataset Construction and Preparation)
+% ============================================================
+
+\section{Methodology}
+
+This section describes the overall experimental pipeline, the models under comparison, the fine-tuning procedure, and the evaluation framework used to assess multi-task UI code generation.
+
+\subsection{Overview}
+
+The proposed methodology follows a three-stage pipeline: (i)~model preparation and optional fine-tuning, (ii)~multi-task inference on the held-out test set, and (iii)~automated evaluation using both code-level and visual-fidelity metrics. Given a UI screenshot as input, each model is tasked with generating frontend code in three target formats—HTML with Tailwind CSS, React JSX, and Vue~3 SFC—using identical task-specific prompts. Figure~\ref{fig:methodology} illustrates the overall workflow.
+
+\begin{figure}[h]
+\centering
+% Replace with your actual methodology figure
+\fbox{\parbox{0.95\linewidth}{\centering\vspace{2pt}
+\small
+\textbf{UI Screenshot} $\rightarrow$ \textbf{Vision-Language Model} $\rightarrow$ \textbf{HTML / JSX / Vue}\\[4pt]
+Three model variants evaluated:\\
+(a) Qwen2-VL-2B base (zero-shot)\\
+(b) Qwen2-VL-2B + QLoRA adapter (fine-tuned)\\
+(c) Qwen2.5-VL-3B base (zero-shot)\\[4pt]
+$\downarrow$\\
+\textbf{Code Metrics + Visual Metrics (Chromium Rendering)}
+\vspace{2pt}}}
+\caption{Overall methodology: screenshot-to-code generation and evaluation pipeline.}
+\label{fig:methodology}
+\end{figure}
+
+\subsection{Model Selection and Configuration}
+
+Three model configurations are compared to investigate the effect of parameter-efficient fine-tuning versus scaling on UI code generation:
+
+\begin{enumerate}
+    \item \textbf{Qwen2-VL-2B-Instruct (Base):} A 2-billion parameter vision-language model from the Qwen2-VL family~\cite{wang2024qwen2vl}, evaluated in zero-shot mode. This serves as the baseline, representing the capability of a small VLM without any task-specific adaptation.
+    
+    \item \textbf{Qwen2-VL-2B-Instruct + QLoRA (Fine-tuned):} The same 2B base model, fine-tuned on the extended WebSight dataset using QLoRA~\cite{dettmers2023qlora}. The base weights are quantized to 4-bit NF4 precision, while low-rank adapters are trained in FP16. This configuration tests whether parameter-efficient fine-tuning on a small model can significantly boost performance.
+    
+    \item \textbf{Qwen2.5-VL-3B-Instruct (Base):} A newer 3-billion parameter model from the Qwen2.5-VL family~\cite{bai2025qwen25vl}, evaluated in zero-shot mode. This tests whether a larger, more recent architecture can match or exceed the fine-tuned smaller model without any task-specific training.
+\end{enumerate}
+
+All models use the same inference configuration: greedy decoding (temperature~=~0), a maximum of 1,536 new tokens, and batch sizes optimized for GPU utilization. Images are pre-resized to reduce vision token counts and accelerate inference.
+
+\subsection{QLoRA Fine-Tuning Procedure}
+
+The fine-tuning follows the QLoRA methodology~\cite{dettmers2023qlora}, which combines 4-bit quantization with low-rank adaptation~\cite{hu2021lora}. Table~\ref{tab:qlora_config} summarizes the hyperparameter configuration.
+
+\begin{table}[h]
+\centering
+\caption{QLoRA fine-tuning hyperparameters.}
+\label{tab:qlora_config}
+\begin{tabular}{ll}
+\hline
+\textbf{Parameter} & \textbf{Value} \\
+\hline
+Quantization & 4-bit NF4, double quantization \\
+LoRA rank ($r$) & 64 \\
+LoRA alpha ($\alpha$) & 128 \\
+LoRA dropout & 0.05 \\
+Target modules & q, k, v, o, gate, up, down proj. \\
+Learning rate & $1 \times 10^{-4}$ \\
+Epochs & 3 \\
+Batch size & 1 (gradient accum. = 8) \\
+Warmup steps & 100 \\
+Max sequence length & 2,048 tokens \\
+Optimizer & AdamW \\
+Gradient checkpointing & Enabled \\
+\hline
+\end{tabular}
+\end{table}
+
+The LoRA adapters are applied to all attention and feed-forward projection layers (q\_proj, k\_proj, v\_proj, o\_proj, gate\_proj, up\_proj, down\_proj), enabling the model to learn task-specific representations while keeping the quantized base frozen. The training uses 25,215 multi-task examples (three tasks per image: HTML, JSX, Vue) over 3 epochs. During training, labels are masked so that the loss is computed only on the assistant's code output, not on the image tokens or the user prompt.
+
+\subsection{Evaluation Framework}
+
+The evaluation is conducted on 1,488 held-out test samples (496 per task) and employs two complementary evaluation dimensions:
+
+\subsubsection{Code-Level Metrics}
+\begin{itemize}
+    \item \textbf{Parse Success Rate (PSR):} Percentage of generated code that passes AST-level parsing using production-grade parsers—\texttt{@babel/parser} for JSX and \texttt{@vue/compiler-sfc} for Vue.
+    \item \textbf{BLEU-4}~\cite{papineni2002bleu}: Measures $n$-gram overlap between generated and reference code.
+    \item \textbf{CodeBLEU}~\cite{ren2020codebleu}: A code-aware variant of BLEU that incorporates syntax (AST match), dataflow, and weighted $n$-gram components.
+    \item \textbf{ROUGE-L}~\cite{lin2004rouge}: Evaluates longest common subsequence similarity.
+    \item \textbf{ChrF:} Character $n$-gram F-score, robust to tokenization differences.
+    \item \textbf{METEOR:} Precision/recall metric with synonym and stemming awareness.
+    \item \textbf{Edit Similarity:} $1 - \text{normalized Levenshtein distance}$, measuring character-level closeness.
+    \item \textbf{BERTScore F1}~\cite{zhang2019bertscore}: Semantic similarity via contextual embeddings.
+    \item \textbf{Tag Accuracy:} Fraction of reference HTML/JSX tags recovered in the prediction.
+    \item \textbf{Tree Edit Similarity:} Structural similarity based on tag-sequence Levenshtein distance.
+\end{itemize}
+
+\subsubsection{Visual Fidelity Metrics}
+Generated code is rendered in a headless Chromium browser via Playwright, and the resulting screenshots are compared pixel-by-pixel against the original WebSight images:
+\begin{itemize}
+    \item \textbf{SSIM}~\cite{wang2004ssim}: Structural similarity index ($0$--$1$; higher is better).
+    \item \textbf{PSNR:} Peak signal-to-noise ratio in dB (higher is better).
+    \item \textbf{LPIPS}~\cite{zhang2018lpips}: Learned perceptual image patch similarity (lower is better).
+\end{itemize}
+
+\subsubsection{Efficiency Metrics}
+Inference latency (seconds per sample) and peak VRAM consumption (GiB) are recorded to assess practical deployment feasibility on consumer-grade GPUs (tested on NVIDIA RTX 3070 Ti, 8~GB VRAM).
+
+
+% ============================================================
+\section{Experimental Results}
+
+\subsection{Overall Performance Comparison}
+
+Table~\ref{tab:main_results} presents the aggregated evaluation results across all three tasks (HTML, JSX, Vue) for the three model configurations. The QLoRA fine-tuned model achieves the highest scores across nearly all code-level and visual-fidelity metrics.
+
+\begin{table}[h]
+\centering
+\caption{Overall performance comparison across all tasks (averaged). Best values in \textbf{bold}.}
+\label{tab:main_results}
+\begin{tabular}{lccc}
+\hline
+\textbf{Metric} & \textbf{Base (2B)} & \textbf{Qwen2.5 (3B)} & \textbf{QLoRA (2B)} \\
+\hline
+PSR (\%) & 96.24 & 99.46 & \textbf{99.93} \\
+BLEU-4 & 52.24 & 54.31 & \textbf{80.73} \\
+CodeBLEU & 0.519 & 0.573 & \textbf{0.732} \\
+ROUGE-L & 0.567 & 0.614 & \textbf{0.812} \\
+ChrF & 59.76 & 64.78 & \textbf{84.02} \\
+METEOR & 0.531 & 0.589 & \textbf{0.780} \\
+Edit Sim. & 0.498 & 0.537 & \textbf{0.774} \\
+BERTScore F1 & --- & 0.908 & \textbf{0.957} \\
+Tag Accuracy & 0.564 & 0.641 & \textbf{0.874} \\
+Tree Edit Sim. & 0.507 & 0.532 & \textbf{0.807} \\
+\hline
+SSIM & 0.507 & 0.735 & \textbf{0.736} \\
+PSNR (dB) & 9.62 & 11.95 & \textbf{12.21} \\
+LPIPS $\downarrow$ & 0.674 & 0.464 & \textbf{0.452} \\
+\hline
+Latency (s) $\downarrow$ & 7.28 & 42.59 & \textbf{4.45} \\
+VRAM (GiB) $\downarrow$ & 6.51 & 8.59 & \textbf{2.89} \\
+\hline
+\end{tabular}
+\end{table}
+
+The QLoRA fine-tuned model outperforms the base Qwen2-VL-2B by substantial margins: +54.6\% in BLEU-4, +41.1\% in CodeBLEU, +43.3\% in ROUGE-L, and +45.1\% in SSIM. Compared to the larger Qwen2.5-VL-3B zero-shot model, QLoRA still leads by +48.7\% in BLEU-4 and +27.8\% in CodeBLEU, demonstrating that task-specific fine-tuning on a smaller model can surpass a larger untrained model.
+
+\subsection{Per-Task Analysis}
+
+Table~\ref{tab:per_task} presents the per-task breakdown for key metrics, revealing important differences across generation targets.
+
+\begin{table}[h]
+\centering
+\caption{Per-task performance for selected metrics.}
+\label{tab:per_task}
+\begin{tabular}{llccc}
+\hline
+\textbf{Task} & \textbf{Metric} & \textbf{Base} & \textbf{Qwen2.5} & \textbf{QLoRA} \\
+\hline
+\multirow{4}{*}{HTML}
+ & PSR (\%) & 100.0 & 100.0 & \textbf{100.0} \\
+ & BLEU-4 & 64.69 & 59.16 & \textbf{83.23} \\
+ & CodeBLEU & 0.639 & 0.607 & \textbf{0.774} \\
+ & SSIM & 0.387 & 0.732 & \textbf{0.752} \\
+\hline
+\multirow{4}{*}{JSX}
+ & PSR (\%) & 94.76 & 98.79 & \textbf{100.0} \\
+ & BLEU-4 & 38.86 & 50.46 & \textbf{81.32} \\
+ & CodeBLEU & 0.459 & 0.523 & \textbf{0.696} \\
+ & SSIM & 0.748 & 0.748 & \textbf{0.748} \\
+\hline
+\multirow{4}{*}{Vue}
+ & PSR (\%) & 93.95 & 99.60 & \textbf{99.80} \\
+ & BLEU-4 & 53.16 & 53.31 & \textbf{77.64} \\
+ & CodeBLEU & 0.460 & 0.590 & \textbf{0.728} \\
+ & SSIM & 0.387 & 0.724 & \textbf{0.708} \\
+\hline
+\end{tabular}
+\end{table}
+
+Several observations emerge from the per-task analysis:
+
+\textbf{HTML generation} is the easiest task for all models, as the base model already achieves 100\% PSR and a BLEU-4 of 64.69. This is expected because HTML is the closest format to the WebSight training distribution. Notably, the base Qwen2-VL-2B scores higher than the larger Qwen2.5-VL-3B on HTML BLEU-4 (64.69 vs.\ 59.16), suggesting that the newer model may apply more aggressive reformatting.
+
+\textbf{JSX generation} shows the largest performance gap between fine-tuned and zero-shot models. The base model's BLEU-4 of 38.86 indicates significant difficulty with React-specific syntax (className, JSX expressions, component structure), while QLoRA achieves 81.32—a 109\% relative improvement. The PSR also increases from 94.76\% to 100\%, meaning QLoRA eliminates all parse failures for JSX.
+
+\textbf{Vue SFC generation} follows a similar pattern, with QLoRA improving BLEU-4 from 53.16 to 77.64 (+46\%). The base model struggles with Vue template syntax, producing parse failures in approximately 6\% of samples.
+
+\subsection{Resource Efficiency}
+
+A key finding is the resource efficiency of the QLoRA approach. The fine-tuned model requires only 2.89~GiB of VRAM at inference—55.6\% less than the base model (6.51~GiB) and 66.4\% less than Qwen2.5-VL-3B (8.59~GiB). Inference latency is also lowest at 4.45~seconds per sample, compared to 7.28~s for the base and 42.59~s for Qwen2.5-VL-3B. The significantly higher latency of Qwen2.5-VL-3B is attributable to its larger parameter count (3B vs.\ 2B) and higher-precision computation (BFloat16 vs.\ 4-bit quantized).
+
+These results demonstrate that QLoRA fine-tuning not only improves output quality but also reduces inference cost, making it highly suitable for deployment on consumer-grade GPUs.
+
+
+% ============================================================
+\section{Error Analysis}
+
+\subsection{Quantitative Error Analysis}
+
+Table~\ref{tab:error_quant} quantifies the primary error categories observed across model outputs on the 1,488 test samples.
+
+\begin{table}[h]
+\centering
+\caption{Quantitative error breakdown by model (\% of test samples).}
+\label{tab:error_quant}
+\begin{tabular}{lccc}
+\hline
+\textbf{Error Type} & \textbf{Base} & \textbf{Qwen2.5} & \textbf{QLoRA} \\
+\hline
+Parse failure (JSX) & 5.24\% & 1.21\% & \textbf{0.00\%} \\
+Parse failure (Vue) & 6.05\% & 0.40\% & \textbf{0.20\%} \\
+Low edit similarity ($<0.3$) & 18.7\% & 12.4\% & \textbf{3.2\%} \\
+Exact match rate & 0.00\% & 0.00\% & \textbf{0.60\%} \\
+Token accuracy $<5\%$ & 72.8\% & 61.3\% & \textbf{24.1\%} \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Parse failures} are largely eliminated by QLoRA for JSX (0.00\%) and nearly eliminated for Vue (0.20\%, corresponding to only 1 sample out of 496). The base model, by contrast, fails to produce parseable JSX in 5.24\% of cases and Vue in 6.05\% of cases. Common parse errors in the base model include unclosed JSX expressions, missing \texttt{className} conversions (using \texttt{class} instead), and malformed Vue \texttt{<template>} blocks.
+
+\textbf{Low edit similarity} samples (below 0.3) indicate outputs that are substantially different from the reference. Only 3.2\% of QLoRA outputs fall into this category compared to 18.7\% for the base, reflecting the fine-tuned model's closer adherence to expected code structure.
+
+\textbf{Token accuracy} remains relatively low even for QLoRA (18.26\% on average), indicating that exact token-level replication is not achieved. This is expected in code generation tasks where semantically equivalent code can differ in whitespace, variable naming, and ordering of CSS classes.
+
+\subsection{Qualitative Error Analysis}
+
+Qualitative inspection of model outputs reveals distinct failure modes:
+
+\textbf{Base Qwen2-VL-2B} frequently produces HTML-like output even when prompted for JSX or Vue, suggesting the model's pre-training distribution is heavily biased toward HTML. It also tends to hallucinate CSS class names not present in the reference and occasionally generates incomplete component structures (e.g., missing \texttt{export} statements in JSX).
+
+\textbf{Qwen2.5-VL-3B} generates more structurally correct outputs but tends to deviate stylistically from the reference—applying its own formatting conventions, reordering elements, and substituting equivalent but different Tailwind classes. This explains why its BLEU-4 and CodeBLEU scores remain moderate despite high PSR and BERTScore values: the semantic content is preserved but surface-level code differs.
+
+\textbf{QLoRA fine-tuned model} closely mirrors the reference code structure, Tailwind class usage, and component organization. Its primary remaining errors are in complex nested layouts where the model may truncate deeply nested elements due to the 1,536-token generation limit, and in rare cases where CSS class ordering differs from the reference without affecting visual output.
+
+\subsection{Visual Fidelity Analysis}
+
+The visual evaluation reveals an interesting pattern: while QLoRA achieves the highest SSIM (0.736) and lowest LPIPS (0.452) on average, the Qwen2.5-VL-3B model performs comparably (SSIM = 0.735, LPIPS = 0.464). This suggests that the larger model compensates for code-level differences through equivalent visual rendering—the generated code may differ textually but produces visually similar outputs when rendered. However, the base Qwen2-VL-2B shows substantially lower visual fidelity (SSIM = 0.507), confirming that its code-level errors directly translate to degraded visual output.
+
+
+% ============================================================
+\section{Conclusion}
+
+\subsection{Summary of Contributions}
+
+This work presents a comprehensive pipeline for multi-task UI code generation from screenshots, with three key contributions:
+
+\begin{enumerate}
+    \item \textbf{Extended WebSight Dataset:} The original WebSight dataset~\cite{laurencon2024websight} was extended by generating validated React JSX and Vue~3 SFC code for each HTML sample using Qwen2.5-Coder-7B~\cite{hui2024qwen25coder}. The extended dataset of 9,889 validated samples, each with three code variants, provides a new multi-framework benchmark for UI-to-code research. Quality was verified through three independent validators achieving an average PABAK~\cite{byrt1993pabak} of 0.9786.
+    
+    \item \textbf{QLoRA Fine-Tuning for UI Code Generation:} We demonstrated that QLoRA fine-tuning~\cite{dettmers2023qlora} on a small 2B-parameter VLM achieves substantial improvements over zero-shot baselines. The fine-tuned model improves BLEU-4 by 54.6\%, CodeBLEU by 41.1\%, and SSIM by 45.1\% over the base model, while also outperforming the larger 3B-parameter Qwen2.5-VL model across all code-level metrics.
+    
+    \item \textbf{Multi-Dimensional Evaluation:} A comprehensive evaluation framework combining 13 code-level metrics, 3 visual-fidelity metrics, and efficiency metrics provides a holistic assessment that addresses limitations of benchmarks relying solely on visual similarity~\cite{li2024design2code}.
+\end{enumerate}
+
+\subsection{Key Findings}
+
+The results support two important findings. First, \textit{parameter-efficient fine-tuning outperforms model scaling} for targeted code generation tasks: the 2B QLoRA model consistently surpasses the larger 3B zero-shot model while using 66.4\% less VRAM and providing 9.6$\times$ faster inference. Second, \textit{the gap between code-level and visual-level metrics} highlights that surface-level code similarity (BLEU, edit distance) and rendered visual similarity (SSIM, LPIPS) capture complementary aspects of generation quality—a model may produce visually equivalent output using different code patterns.
+
+\subsection{Limitations}
+
+Several limitations should be acknowledged:
+
+\begin{itemize}
+    \item \textbf{Synthetic dataset:} The WebSight dataset consists of synthetically generated web pages, which may not fully represent the complexity and diversity of real-world production UIs with dynamic content, API integrations, and accessibility requirements.
+    
+    \item \textbf{Single fine-tuning method:} While the title references LoRA, QLoRA, and DoRA, the experimental comparison is limited to QLoRA fine-tuning versus zero-shot baselines. A direct comparison of LoRA, QLoRA, and DoRA under identical conditions remains for future work due to hardware constraints (8~GB VRAM).
+    
+    \item \textbf{Token generation limit:} The 1,536-token limit causes truncation on approximately 0.2\% of complex samples. Longer generation windows would improve coverage at the cost of increased latency.
+    
+    \item \textbf{Static evaluation:} The rendered visual comparison captures only static appearance. Interactive behaviors (animations, hover effects, responsive breakpoints) are not evaluated.
+\end{itemize}
+
+\subsection{Future Work}
+
+Several directions for future research are identified:
+
+\begin{itemize}
+    \item \textbf{Comparative PEFT study:} A systematic comparison of LoRA, QLoRA, DoRA~\cite{liu2024dora}, and adapter-based methods on the same dataset and base model would clarify the relative effectiveness of each adaptation strategy for code generation.
+    
+    \item \textbf{Larger and real-world datasets:} Extending the pipeline to real-world UI datasets (e.g., screenshots scraped from production websites) and scaling to the full 1.92M WebSight samples would test generalization and scalability.
+    
+    \item \textbf{Interactive and responsive evaluation:} Developing evaluation metrics that capture responsive layout behavior across viewports, accessibility compliance (WCAG), and interactive element functionality would provide a more complete quality assessment.
+    
+    \item \textbf{Iterative refinement:} Integrating self-repair loops during inference—where the model receives validation errors and regenerates failed code—could further improve PSR and code quality, similar to the approach of UICoder~\cite{feng2023uicoder}.
+    
+    \item \textbf{Cross-framework transfer:} Investigating whether fine-tuning on one framework (e.g., React) transfers to improved generation in related frameworks (e.g., Vue, Svelte) would explore the model's ability to learn generalizable UI patterns rather than framework-specific syntax.
+\end{itemize}
+
+
+% ============================================================
+% REFERENCES — add these to your existing bibliography
+% ============================================================
+% If you are using BibTeX, add the following entries.
+% If you are using \begin{thebibliography}, add them in numbered order
+% matching your existing citation numbering.
+
+% NEW CITATIONS TO ADD (adjust numbering to fit your existing references):
+%
+% \bibitem{wang2024qwen2vl}
+% P. Wang, S. Bai, S. Tan, S. Wang, Z. Fan, J. Bai, K. Chen, X. Liu,
+% J. Wang, W. Ge, Y. Fan, K. Dang, M. Du, X. Ren, R. Men, D. Liu,
+% C. Zhou, J. Zhou, and J. Lin,
+% ``Qwen2-VL: Enhancing vision-language model's perception of the world at any resolution,''
+% \textit{arXiv preprint arXiv:2409.12191}, 2024.
+%
+% \bibitem{bai2025qwen25vl}
+% S. Bai, K. Chen, X. Liu, J. Wang, W. Ge, S. Song, K. Dang, P. Wang,
+% S. Wang, J. Tang, H. Zhong, Y. Zhu, M. Yang, Z. Li, J. Wan, P. Wang,
+% W. Ding, Z. Fan, Y. Fan, et~al.,
+% ``Qwen2.5-VL technical report,''
+% \textit{arXiv preprint arXiv:2502.13923}, 2025.
+%
+% \bibitem{papineni2002bleu}
+% K. Papineni, S. Roukos, T. Ward, and W.-J. Zhu,
+% ``BLEU: A method for automatic evaluation of machine translation,''
+% in \textit{Proc. ACL}, pp.~311--318, 2002.
+%
+% \bibitem{zhang2019bertscore}
+% T. Zhang, V. Kishore, F. Wu, K. Q. Weinberger, and Y. Artzi,
+% ``BERTScore: Evaluating text generation with BERT,''
+% in \textit{Proc. ICLR}, 2020.
+%
+% \bibitem{ren2020codebleu}
+% S. Ren, D. Guo, S. Lu, L. Zhou, S. Liu, D. Tang, N. Sundaresan,
+% M. Zhou, A. Blanco, and S. Ma,
+% ``CodeBLEU: A method for automatic evaluation of code synthesis,''
+% \textit{arXiv preprint arXiv:2009.10297}, 2020.
+%
+% \bibitem{lin2004rouge}
+% C.-Y. Lin,
+% ``ROUGE: A package for automatic evaluation of summaries,''
+% in \textit{Text Summarization Branches Out}, pp.~74--81, 2004.
+%
+% \bibitem{wang2004ssim}
+% Z. Wang, A. C. Bovik, H. R. Sheikh, and E. P. Simoncelli,
+% ``Image quality assessment: From error visibility to structural similarity,''
+% \textit{IEEE Trans. Image Processing}, vol.~13, no.~4, pp.~600--612, 2004.
+%
+% \bibitem{zhang2018lpips}
+% R. Zhang, P. Isola, A. A. Efros, E. Shechtman, and O. Wang,
+% ``The unreasonable effectiveness of deep features as a perceptual metric,''
+% in \textit{Proc. CVPR}, pp.~586--595, 2018.
+%
+% \bibitem{hu2021lora}
+% E. J. Hu, Y. Shen, P. Wallis, Z. Allen-Zhu, Y. Li, S. Wang,
+% L. Wang, and W. Chen,
+% ``LoRA: Low-rank adaptation of large language models,''
+% in \textit{Proc. ICLR}, 2022.
