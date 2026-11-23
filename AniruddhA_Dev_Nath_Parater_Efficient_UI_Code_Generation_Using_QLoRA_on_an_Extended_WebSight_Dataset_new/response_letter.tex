@@ -1,0 +1,268 @@
+%% Response to reviewers, ISASF 2026, Paper ID 132.
+%% Red [TO FILL] markers are replaced once the remaining runs finish.
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{parskip}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\rev}[1]{\par\noindent\textbf{Comment.} \textit{#1}\par}
+\newcommand{\resp}{\par\noindent\textbf{Response.} }
+\newcommand{\change}[1]{\par\noindent\textbf{Changes in the manuscript.} #1\par\medskip}
+\newcommand{\tofill}[1]{\textcolor{red}{[TO FILL: #1]}}
+
+\begin{document}
+
+\begin{center}
+{\Large\textbf{Response to the Reviewers}}\\[4pt]
+ISASF 2026, Paper ID 132\\
+\textit{Parameter-Efficient UI Code Generation Using QLoRA on an Extended WebSight Dataset}
+\end{center}
+
+We thank the reviewers for their careful reading and constructive comments. We
+ran the additional experiments requested where this was possible within the
+revision period and revised the manuscript accordingly. Below, each comment is
+followed by our response and the corresponding changes. Section, table and
+equation numbers refer to the revised manuscript, which remains within the
+six-page limit. Two new experiments run through several responses: Qwen2.5-VL-3B
+fine-tuned with the same QLoRA recipe, and an evaluation on 100 real web pages
+from Design2Code.
+
+\section*{Reviewer 1}
+
+\rev{The dataset extension relies on Qwen2.5-Coder-7B, and a smaller model is
+fine-tuned on this synthetic data. This introduces a teacher-student circularity:
+the fine-tuned model may learn the biases and artifacts of the larger model, and
+its advantage over larger zero-shot models may reflect overfitting to the
+teacher's style.}
+\resp We agree that code-similarity metrics such as BLEU-4 and CodeBLEU partly
+reward agreement with the teacher's style, and we now state this explicitly. Four
+results limit the concern. (i) The HTML references are the original WebSight
+code, which our teacher did not produce, yet fine-tuning still raises HTML
+BLEU-4 from 64.69 to 83.23. (ii) The visual metrics (SSIM, PSNR, LPIPS) compare
+renders with the original screenshot, not with the teacher's code, so they do
+not reward the teacher's style; we now treat them as the primary measure of
+output quality. On them, the fine-tuned model reaches 99\% of the SSIM obtained by
+the reference code itself (0.716 vs.\ 0.722) and covers two-thirds of the LPIPS
+distance between the zero-shot 3B model and the reference code. (iii) A new
+render-based check (below, Reviewer 3, comment 1) shows that the teacher's
+targets reproduce their source pages. (iv) On 100 real Design2Code pages, for
+which no teacher code exists, fine-tuning still improves every visual metric
+over the base model (SSIM $+0.210$, 95\% CI $[0.183, 0.239]$; see comment 2).
+\change{New ``Teacher circularity'' paragraph (Sec.~VI); visual metrics declared
+primary, with the reference-code ceiling (Sec.~IV-C, Table~I); new render-based
+check (Sec.~III-C); Design2Code evaluation (Sec.~V-B); limitation added
+(Sec.~VII).}
+
+\rev{The evaluation is performed only on held-out synthetic WebSight pages, which
+do not capture the complexity, dynamic states, state management, accessibility
+requirements and edge cases of real-world UIs; claiming readiness for
+production-grade workflows without real websites (e.g.\ Design2Code) weakens the
+contribution.}
+\resp We agree and have removed all production-readiness claims, and the
+limitations name dynamic states, state management, accessibility and structural
+complexity explicitly. We also evaluated the models on real pages from
+Design2Code, as suggested. Because the models were trained on single-screen
+pages, each page is reduced to its first screen (a 16:9 crop of the top of its
+screenshot), which serves as both input and comparison target; we used a random
+100 of the 484 pages with the same prompts, decoding and rendering as for
+WebSight. All scores drop on real pages, but fine-tuning still helps. The
+fine-tuned 2B model improves on its base model by 0.210 SSIM $[0.183, 0.239]$,
+3.2\,dB PSNR and 0.122 LPIPS (paired bootstrap over pages, all $p<0.001$),
+renders 100/93/99\% of its HTML/JSX/Vue outputs (base model: 96/13/90\%), and is
+statistically tied with the fine-tuned 3B model on all three metrics
+($p \ge 0.08$). Its HTML reaches SSIM 0.716 on the 94 pages whose real HTML
+renders, against 0.730 for the real HTML itself. The zero-shot 3B model, about
+twice as slow, was run on the first 25 of these pages. There, the fine-tuned 2B
+model is statistically tied with it (SSIM $-0.021$ $[-0.071, 0.032]$, LPIPS
+$-0.012$ $[-0.052, 0.027]$), so the LPIPS advantage we observed on WebSight is
+not confirmed on real pages; with 25 pages this comparison has little
+statistical power, and we report it as such.
+The evaluation also exposed a limitation that we now report: the fine-tuned
+model writes about 600 tokens per page, the scale of its WebSight training
+targets, whereas the real HTML has a median of 14,805 tokens, so complex pages
+are simplified.
+\change{Abstract; Sec.~IV-C (protocol); new Sec.~V-B with Table~III; Sec.~VI;
+Sec.~VII (limitations and future work).}
+
+\rev{Comparing a fine-tuned 2B model with zero-shot baselines is unbalanced. A
+proper baseline is the 3B model (or a similar model) fine-tuned on the same data
+with LoRA/QLoRA; otherwise the gains cannot be attributed to QLoRA rather than to
+in-domain supervised fine-tuning.}
+\resp We agree with this distinction and made two changes. First, we no longer
+attribute the gains to QLoRA itself: the revised text states that the results show
+the benefit of in-domain fine-tuning, which QLoRA makes affordable on an 8\,GB
+GPU, and not that QLoRA is better than other adaptation methods. Second, we
+fine-tuned Qwen2.5-VL-3B on exactly the same data with the same QLoRA recipe
+(rank 64, $\alpha=128$, learning rate $10^{-4}$, same data and seed). To fit the
+larger model on the same 8\,GB GPU we used bf16 precision, a paged 8-bit AdamW
+optimizer and 16-bit frozen embeddings, and trained for one epoch (3,152 steps,
+about 34 hours; three epochs would have taken more than four days). Its training loss was lower than
+that of the 2B model in all 32 windows of 100 steps (by 6--14\%, median 10\%),
+reaching 0.053 vs.\ 0.061 over the last 100 steps of the epoch.\\
+On the test set, fine-tuning closes most of the 3B model's gap to the fine-tuned
+2B model (BLEU-4 from 54.31 to 78.41, LPIPS from 0.563 to 0.524) but does not
+overtake it. The two are tied on SSIM ($-0.0004$, 95\% CI $[-0.005, 0.004]$,
+$p=0.87$), and the 2B model is slightly better on LPIPS ($-0.009$
+$[-0.015, -0.003]$), PSNR ($+0.15$\,dB $[0.01, 0.30]$), BLEU-4 ($+2.3$
+$[1.6, 3.0]$) and CodeBLEU ($+0.022$ $[0.015, 0.028]$). On Design2Code the two
+fine-tuned models are tied on all visual metrics. The fine-tuned 3B model needs
+51\% more GPU memory and 15\% more time per sample (3.30 vs.\ 2.18\,GiB; 12.9 vs.\
+11.2\,s at batch size 8). Training for one epoch instead of three favours the 2B
+model in training budget, which we state; at this budget, the larger model brings
+no gain.
+\change{Sec.~IV-A (new model configuration); Tables~I and II (new QLoRA (3B)
+column); Sec.~V-A (new comparison paragraph and summary); Sec.~V-B; Sec.~VI
+(new ``Model size'' paragraph); Sec.~VII (single training run, one epoch, BF16).}
+
+\section*{Reviewer 3}
+
+We thank the reviewer for verifying the internal consistency of our headline
+figures and for the detailed suggestions.
+
+\rev{(1) The reference code is circular; BLEU and CodeBLEU reward imitating the
+teacher. Please treat the visual metrics as primary, where the 3B model is already
+close (SSIM 0.711 vs.\ 0.716), and verify the dataset by rendering each generated
+JSX/Vue file and comparing it with its source HTML screenshot.}
+\resp On circularity, please see our response to Reviewer~1, comment~1. The visual
+metrics are now primary (listed first in Table~I), and we report paired bootstrap
+tests for every comparison (comment~4). The reviewer is right that SSIM does not
+separate the two models: the difference is $+0.005$ (95\% CI $[-0.004, 0.014]$,
+$p=0.33$), and on Vue the zero-shot 3B model is significantly better. SSIM is
+close to its ceiling for both models (0.722 for the reference code itself). The
+fine-tuned model is, however, significantly better on LPIPS ($-0.048$, CI
+$[-0.057, -0.040]$) and PSNR ($+0.53$\,dB, CI $[0.29, 0.77]$). We have rewritten
+the claims accordingly.\\
+For the dataset check, we rendered the original HTML, the JSX target and the Vue
+target of all 496 test images and of a random sample of 1,504 training and
+validation images with the evaluation harness, and compared each target's render
+with the render of its source HTML. JSX and Vue targets rendered in 99.5\% and
+100\% of cases, with a median SSIM to the source render of 0.90 and 0.96. Lower
+scores came mainly from page-level styling (e.g.\ a dark \texttt{<body>}
+background that a mounted component covers only up to its content height) and
+from randomly sampled placeholder images, not from missing content: low- and
+high-scoring targets had the same ratio of elements to their source page.
+\change{Sec.~III-C (render-based check), Sec.~IV-C, Table~I, Sec.~V-A.}
+
+\rev{(2) The baselines are unequal. Please add Qwen2.5-VL-3B with the same QLoRA
+training, few-shot prompting baselines, and an existing WebSight-trained model.}
+\resp The QLoRA-trained Qwen2.5-VL-3B is now included; please see our response to
+Reviewer~1, comment~3. We were not able to add the other two baselines within the
+revision period on our hardware, and we explain why. A few-shot prompt for this
+task must contain at least one example screenshot and its full code (about 1,500
+tokens per example) in addition to the query image. The zero-shot 3B model in
+16-bit precision already needs more memory than our 8\,GB GPU provides, so a
+longer few-shot context was not practical within the revision period, and the
+results would also depend on the choice of examples. The WebSight-trained models
+we are aware of (e.g.\ the model released with WebSight and Design2Code-18B) have
+7B parameters or more and generate HTML only, so they cannot be run on our
+hardware and cannot produce the JSX and Vue outputs evaluated here. We list both
+comparisons as future work.
+\change{Sec.~IV-A, Sec.~V-A, Sec.~VII.}
+
+\rev{(3) The results are from synthetic data only. WebSight pages are
+template-like, so a random split may leak near-duplicates. Please de-duplicate,
+and evaluate on the real-website Design2Code benchmark.}
+\resp The split is made by image, so the three tasks of an image always fall in
+the same split. We computed, for every test page, the word 5-gram Jaccard
+similarity of its HTML to the closest training page. No test page duplicated a
+training page, one exceeded the common near-duplicate threshold of 0.8, and 28
+exceeded 0.5. Removing these 28 pages changed SSIM, LPIPS and CodeBLEU by less
+than 0.01, PSNR by less than 0.2\,dB and BLEU-4 by less than 0.5 points for every
+model, and did not change the ranking of the models. For Design2Code, please see
+our response to Reviewer~1, comment~2.
+\change{Sec.~III-D; Design2Code: Sec.~IV-C, Sec.~V-B, Table~III.}
+
+\rev{(4) No variance is reported. Please give bootstrap confidence intervals or
+results over several seeds. Please also explain why the 4-bit model runs faster
+than the FP16 base model (shorter outputs?) and report the number of generated
+tokens.}
+\resp We now report 95\% confidence intervals and two-sided $p$-values from a
+paired bootstrap over the 496 test images (1,000 resamples; 500 for CodeBLEU),
+in which the three tasks of an image are resampled together and all models are
+compared on the same resamples. Repeated training runs with different seeds were
+not feasible on our hardware within the revision period, and we list this as a
+limitation.\\
+On latency, the reviewer's intuition explains our original numbers, and a
+controlled re-run changed our conclusion. Generation is batched, and a batch
+finishes only when its longest output does. In the original runs, batch time
+correlated with the longest output in the batch ($r=0.86$--$0.91$), the base
+model reached the 1,536-token limit in 3.7\% of its outputs, and the models ran
+with different batch sizes (20 to 40). We therefore timed all four models on the
+same 24 test samples with batch size 8, where no output reached the limit. Per
+sample, the fine-tuned 2B model needs 11.2\,s and 2.18\,GiB of peak GPU memory,
+the base model 6.4\,s and 4.59\,GiB, the fine-tuned 3B model 12.9\,s and
+3.30\,GiB, and the zero-shot 3B model 22.9\,s and 6.47\,GiB, with mean outputs of
+433, 389, 407 and 347 tokens. Under equal conditions, the 4-bit model is thus
+1.75$\times$ slower than the FP16 base model, which we attribute to the
+dequantization of its weights and the separately applied adapter, while it halves
+the memory and is twice as fast as the zero-shot 3B model. We removed the claim
+that the fine-tuned model is faster than its base model.
+\change{Sec.~IV-C, Sec.~V (Efficiency paragraph), Sec.~VII.}
+
+\rev{(5) There are internal inconsistencies: the maximum sequence length is 2048
+in Table IV but 1,536 in the Limitations. The base model's 12.1\% JSX render
+rate may partly reflect the rendering harness (unresolved imports) rather than
+the model itself.}
+\resp The two numbers refer to different quantities, which we failed to make
+clear: 2,048 tokens is the maximum training sequence length (image, prompt and
+code), and 1,536 is the maximum number of generated tokens at inference, which
+covers 99.93\% of the test references. Sec.~IV-B now states the first and
+Sec.~IV-C the second, and the limitations give the correct truncation rates
+(3.7\% of the base model's outputs, 1.1\% of the zero-shot 3B model's and none of
+the fine-tuned model's). The hyperparameter table, which repeated the text of
+Sec.~IV-B, was removed for space.\\
+On the render rate, the reviewer is right. 437 of the base model's 496 JSX outputs
+import a UI library such as react-bootstrap, despite the Tailwind-only
+instruction (19 for the zero-shot 3B model, none for the fine-tuned model), and
+our harness removes import statements. We added a lenient variant that replaces
+imported library components with plain \texttt{<div>} stubs: 87.7\% of the base
+model's JSX outputs then render (SSIM 0.638). The strict render gap therefore
+mostly reflects instruction following, and with the lenient harness the overall
+SSIM gap between the base and fine-tuned models narrows to 0.027. We report both
+settings and removed the earlier ``+40.7\% visual accuracy'' claim. The same
+library imports explain the base model's 13\% JSX render rate on Design2Code.
+\change{Sec.~IV-B, Sec.~IV-C, Sec.~V, Sec.~V-A, Sec.~VII.}
+
+\rev{(6) Several citations are wrong. GPT-3, GPT-4, Transformer, ViT, CLIP and
+Flamingo are cited as UI-to-code research. Design2Code is by Si et al.\ (NAACL
+2025), and UICoder is by Wu et al. Related work also misses Web2Code, WebCode2M
+and DCGen.}
+\resp Thank you; all corrected. The foundation models are now cited as such, and
+UI-to-code research is cited separately (pix2code, REMAUI, WebSight,
+Design2Code). Design2Code is now Si et al.\ (NAACL 2025) and UICoder Wu et al.\
+(NAACL 2024), and Web2Code, WebCode2M and DCGen are discussed in Related Work,
+together with a paragraph on how our work differs from them. While checking the
+bibliography we also corrected the Qwen2-VL and PEFT-survey entries, updated
+arXiv citations to their published venues (e.g.\ pix2code, EICS 2018), and added
+the missing citations for the BLEU, CodeBLEU and LPIPS metrics.
+\change{Sec.~I, Sec.~II, references.}
+
+\section*{Questionnaire items}
+
+\textbf{Differentiation from existing literature (both reviewers).} Related Work
+now ends with a paragraph contrasting our work with Design2Code, Web2Code,
+WebCode2M, DCGen and UICoder: these systems produce HTML/CSS or platform UI code
+and rely on large or proprietary models or on training at scale, whereas our work
+provides validated React and Vue targets and adapts a small open model on consumer
+hardware.
+
+\textbf{Research objectives (Reviewer~1).} The contributions in Sec.~I are now
+stated as objectives, each followed by what was done to meet it.
+
+\textbf{Assumptions (both reviewers).} We now justify the image resolution
+(256--512 visual tokens per screenshot, Sec.~III-D), the generation limit
+(Sec.~IV-C) and the use of teacher-generated targets (Sec.~III-C and Sec.~VI).
+While doing so we also corrected our description of the image pipeline: training
+used the full-resolution screenshots, downscaled by the model's image processor,
+and the 640$\times$360 copies were used for evaluation.
+
+\textbf{Changed numbers.} While re-running the evaluation, we found that the
+data-flow component of CodeBLEU depends on Python's hash seed, which moved JSX
+CodeBLEU by up to 0.01 between runs. All CodeBLEU values are now computed with a
+fixed seed; the overall values change by at most 0.003 (e.g.\ 0.732 to 0.735 for
+the fine-tuned model), and no comparison changes. Latency and memory figures are
+now those of the controlled re-run (Reviewer~3, comment~4).
+
+\end{document}

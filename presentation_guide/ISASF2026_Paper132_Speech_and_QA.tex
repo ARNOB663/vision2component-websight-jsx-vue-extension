@@ -1,0 +1,278 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+\definecolor{navy}{HTML}{0E2841}
+\definecolor{teal}{HTML}{156082}
+\definecolor{tint}{HTML}{E6EFF5}
+\titleformat{\section}{\Large\bfseries\color{navy}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{teal}}{\thesubsection}{0.5em}{}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+\setlist{itemsep=2pt,topsep=3pt}
+\newcommand{\slide}[3]{\subsection*{Slide #1: #2 \hfill\normalfont\small\color{teal}about #3}}
+\newcommand{\say}[1]{\par\noindent\colorbox{tint}{\parbox{\dimexpr\linewidth-2\fboxsep}{#1}}\par}
+\newcommand{\q}[1]{\par\medskip\noindent\textbf{\color{navy}Q: #1}\par}
+\newcommand{\ans}{\noindent\textbf{A:} }
+
+\begin{document}
+
+\begin{center}
+{\LARGE\bfseries\color{navy} Presentation Guide}\\[4pt]
+{\large Parameter-Efficient UI Code Generation Using QLoRA on an Extended WebSight Dataset}\\[4pt]
+ISASF-2026 \quad|\quad Paper ID 132 \quad|\quad 19 November 2026 (Hybrid)\\[2pt]
+{\small Aniruddha Dev Nath, Anitya Barua, Antu Chowdhury, Arnab Biswas}
+\end{center}
+
+\medskip
+\noindent\textbf{How to use this guide.} Part~1 is the 5-minute speech, slide by slide;
+the shaded text is what to say. Part~2 explains every metric and term. Part~3 lists the questions
+reviewers and the audience are most likely to ask, with honest answers. Part~4 covers general questions.
+Every number here is taken from the final camera-ready paper.
+
+\medskip
+\noindent\textbf{Three rules for the talk.}
+\begin{enumerate}
+\item Say ``statistically tied'' for SSIM. The fine-tuned 2B model is \emph{not} better than the 3B models on SSIM.
+\item Say ``saves memory, not time''. The 4-bit model is slower than the 16-bit base model.
+\item On real pages, the fine-tuned model writes much shorter code than the original pages. Say this yourself before someone asks.
+\end{enumerate}
+
+%======================================================================
+\section{Speech: 5-minute version (9 slides)}
+
+Use the deck \texttt{ISASF2026\_Paper132\_Presentation\_5min.pptx}. Speak slowly: the script is about
+4 minutes 15 seconds, which leaves time for changing slides. If you run short of time, skip the sentences marked
+\textit{(optional)}.
+
+\slide{1}{Title}{15 s}
+\say{Good morning. I am [name]. Our paper asks one question: can a small vision-language model, fine-tuned on a
+single 8-gigabyte GPU, turn a screenshot of a user interface into React or Vue code?}
+
+\slide{2}{Introduction}{40 s}
+\say{Screenshot-to-code research mostly produces HTML, but real frontends are built from React and Vue components,
+and large commercial models cost money per token and see your unreleased designs.
+No dataset pairs screenshots with validated React and Vue code. And small models struggle here: used zero-shot,
+the 2B model imports UI libraries in 437 of its 496 React outputs, even though we asked for Tailwind only.}
+
+\slide{3}{Methodology}{50 s}
+\say{We did three things. First, we extended WebSight: a code model generated React and Vue versions of every page,
+each checked by a real parser; 15,588 samples have both targets valid.
+Second, we fine-tuned two models with QLoRA on one 8-gigabyte GPU: Qwen2-VL-2B, and for comparison Qwen2.5-VL-3B.
+Third, we evaluated the code, and we rendered every output in a browser to compare it with the original screenshot,
+with bootstrap confidence intervals.}
+
+\slide{4}{Results: WebSight}{55 s}
+\say{On 1,488 test samples, fine-tuning the 2B model raises BLEU-4 from 52 to 81 and CodeBLEU from 0.52 to 0.74.
+Against the larger zero-shot 3B model, our renders are significantly closer on LPIPS and PSNR.
+On SSIM the two are statistically tied; SSIM is near its ceiling of 0.722.
+The fine-tuned 3B improves a lot too, but does not beat the 2B. \textit{(optional:) It had only one epoch instead of three.}}
+
+\slide{5}{Efficiency}{35 s}
+\say{Our 2B model needs 2.18 gigabytes of GPU memory, a third of the zero-shot 3B model, and it is about twice as fast.
+But to be clear: 4-bit QLoRA saves memory, not time. It is 1.75 times slower than the 16-bit base model.}
+
+\slide{6}{Real web pages (Design2Code)}{45 s}
+\say{Reviewers asked about real websites, so we tested 100 real pages from Design2Code.
+Fine-tuning still helps strongly: SSIM rises by 0.21 over the base model.
+But here our model is only tied with the 3B models, and it writes about 600 tokens per page, while real HTML has a
+median of nearly 15,000. It learned the length of the short synthetic training pages.}
+
+\slide{7}{Conclusion}{30 s}
+\say{To conclude: we built more than 15,000 parser-validated React and Vue targets, and showed that a 2B model
+fine-tuned on one consumer GPU can match a larger fine-tuned model and, on WebSight-style pages, beat a larger zero-shot
+one, with designs kept on-premises.
+\textit{(optional:) Next, we want to train on longer real pages and compare QLoRA with LoRA and DoRA.}}
+
+\slide{8--9}{References and Thank You}{5 s}
+\say{Thank you. I am happy to take your questions.}
+
+\medskip
+\noindent\textbf{Timing check:} 15 + 40 + 50 + 55 + 35 + 45 + 30 + 5 seconds = 4 minutes 35 seconds.
+The longer 14-slide deck (\texttt{ISASF2026\_Paper132\_Presentation.pptx}) stays as a backup; the slides removed from
+the 5-minute version (abstract, literature review, dataset, discussion, limitations) are useful if someone asks.
+
+%======================================================================
+\section{What every metric and term means}
+
+\subsection*{Code-quality metrics (compare the generated code with the reference code)}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\linewidth}{@{}p{3.1cm}X p{2.3cm}@{}}
+\toprule
+\textbf{Metric} & \textbf{Meaning} & \textbf{Better} \\
+\midrule
+Parse Success Rate (PSR) & Percentage of outputs that a real parser accepts: \texttt{@babel/parser} for React JSX,
+\texttt{@vue/compiler-sfc} for Vue. It measures whether the code is syntactically valid. & Higher (0--100\%) \\
+BLEU-4 & Counts how many sequences of 1 to 4 tokens in the output also appear in the reference code. Originally a
+machine-translation metric. & Higher (0--100) \\
+CodeBLEU & BLEU adapted for code: it also compares the syntax tree (AST) and the data flow of the code. Computed with a
+fixed Python hash seed, because its data-flow part depends on it. & Higher (0--1) \\
+Edit similarity & $1 - \frac{\text{edit distance}}{\text{length of the longer text}}$: how many character edits are
+needed to turn the output into the reference. & Higher (0--1) \\
+Tag accuracy & Fraction of the reference HTML/JSX tags that also appear in the output. & Higher (0--1) \\
+Tree edit similarity & Edit similarity computed on the sequence of markup tags instead of characters: compares the
+page structure. & Higher (0--1) \\
+\bottomrule
+\end{tabularx}
+
+\subsection*{Visual metrics (render the code in a browser, compare with the original screenshot)}
+\begin{tabularx}{\linewidth}{@{}p{3.1cm}X p{2.3cm}@{}}
+\toprule
+\textbf{Metric} & \textbf{Meaning} & \textbf{Better} \\
+\midrule
+SSIM (structural similarity) & Compares local brightness, contrast and structure of two images. 1 means identical.
+Our upper bound (the reference code itself) is 0.722. & Higher (0--1) \\
+PSNR (peak signal-to-noise ratio) & $10\log_{10}(\mathrm{MAX}^2/\mathrm{MSE})$ in decibels; based on the pixel-by-pixel
+error. & Higher (dB) \\
+LPIPS (learned perceptual similarity) & Distance between deep-network (AlexNet) features of the two images; closer to
+how humans judge similarity. & \textbf{Lower} (0--1) \\
+Rendered (\%) & Percentage of outputs that produce a visible page in the browser. & Higher \\
+\bottomrule
+\end{tabularx}
+
+\noindent Failed renders are \emph{not} removed: they get the worst score (SSIM 0, PSNR 0, LPIPS 1), so visual scores
+reflect both renderability and appearance. Renders are made at a 1280$\times$960 viewport in headless Chromium.
+
+\subsection*{Statistics and agreement}
+\begin{tabularx}{\linewidth}{@{}p{3.1cm}X@{}}
+\toprule
+Paired bootstrap & We resample the 496 test images with replacement (1,000 times; 500 for CodeBLEU) and recompute
+the difference between two models each time. ``Paired'' means both models are compared on the same resamples, and
+the three tasks of an image are resampled together. \\
+95\% confidence interval (CI) & The range that contains the true difference with 95\% confidence. If it does not
+include 0, the difference is significant. \\
+$p$-value & Two-sided. $p<0.05$ means significant. Example: SSIM 2B vs.\ zero-shot 3B has $p=0.33$, so it is a tie. \\
+PABAK & Prevalence-Adjusted Bias-Adjusted Kappa: agreement between validators, corrected for the fact that almost all
+samples are valid (where Cohen's kappa is misleading). Above 0.81 is ``almost perfect''; ours is 0.9786. \\
+\bottomrule
+\end{tabularx}
+
+\subsection*{Model and training terms}
+\begin{tabularx}{\linewidth}{@{}p{3.1cm}X@{}}
+\toprule
+VLM & Vision-language model: takes an image and text, produces text. \\
+Zero-shot & The model is used as released, without any fine-tuning on our data. \\
+LoRA & Low-Rank Adaptation: the original weights are frozen; only two small matrices (rank $r$) are trained per layer. \\
+QLoRA & LoRA where the frozen weights are stored in 4-bit (NF4) to save memory. We used rank $r=64$, $\alpha=128$. \\
+NF4 & 4-bit NormalFloat, the 4-bit number format used by QLoRA. \\
+FP16 / BF16 & 16-bit number formats. The 2B adapters were trained in FP16; the 3B in BF16, because FP16 overflowed. \\
+Epoch & One full pass over the training data. 2B: 3 epochs; 3B: 1 epoch (3,152 steps, about 34 hours). \\
+Teacher model & Qwen2.5-Coder-7B, which generated our React and Vue training targets. \\
+Self-repair loop & If a generated target fails the parser, the error message is sent back to the teacher, which
+regenerates it (up to two attempts). \\
+Max new tokens & Generation limit of 1,536 tokens; it covers 99.93\% of the test references. \\
+Design2Code & A benchmark of 484 real web pages. We used a random 100, first screen only (16:9 crop). \\
+Lenient harness & A rendering variant that replaces imported UI-library components with plain \texttt{<div>}
+placeholders, to separate broken code from missing libraries. \\
+\bottomrule
+\end{tabularx}
+
+%======================================================================
+\section{Likely questions from reviewers and the audience}
+
+\q{Your training targets come from another model. Isn't the evaluation circular?}
+\ans Partly, for the code metrics, and we say so. That is why we treat the visual metrics as primary. Four results
+limit the concern: (1) the HTML references are the original WebSight code, not from our teacher, and fine-tuning still
+raises HTML BLEU-4 from 64.69 to 83.23; (2) visual metrics compare with the original screenshot, not the teacher's code,
+and our model reaches 99\% of the reference code's SSIM; (3) a render check shows the teacher's targets reproduce their
+source pages; (4) on Design2Code, where no teacher code exists, fine-tuning still improves every visual metric.
+
+\q{Why is your model not better than the 3B model on SSIM?}
+\ans SSIM is statistically tied ($p=0.33$ against the zero-shot 3B, $p=0.87$ against the fine-tuned 3B). SSIM is close
+to its ceiling: even the reference code only reaches 0.722, so it separates good models poorly. On LPIPS and PSNR our 2B
+model is significantly better on WebSight.
+
+\q{Why did the fine-tuned 3B model not beat the 2B model?}
+\ans It was trained for one epoch instead of three, and in BF16 instead of FP16, because of time and memory limits. Its
+training loss at the same steps was lower than the 2B's, so it may simply be under-trained. We did not test this, so we
+do not claim that the larger model is worse in general.
+
+\q{QLoRA is supposed to be efficient. Why is it slower than the base model?}
+\ans QLoRA saves memory, not time. The 4-bit weights must be dequantized at every step, which is a known overhead for
+QLoRA models, and the adapter is applied separately. At the same batch size, our model needs 11.2\,s per sample versus
+6.4\,s for the 16-bit base model, but uses 2.18 versus 4.59\,GiB of memory. Earlier latency numbers that looked faster
+came from different batch sizes; we re-measured under identical conditions.
+
+\q{Does it work on real websites?}
+\ans Partly. On 100 real Design2Code pages, fine-tuning raises SSIM by 0.210 over the base model ($p<0.001$), and the
+React render rate rises from 13\% to 93\%. But all scores drop, our model is tied with both 3B models there, and it
+writes about 600 tokens per page while the real HTML has a median of 14,805 tokens. Training on longer real pages is our
+main future work.
+
+\q{Why does the base model render only 12.1\% of its React outputs?}
+\ans Mostly because it imports UI libraries such as react-bootstrap (437 of 496 outputs) despite the instruction to use
+only Tailwind CSS, and our harness does not install those libraries. With a lenient harness that replaces them with
+placeholders, 87.7\% render and the SSIM gap to our model shrinks to 0.027. So much of the strict gap is about following
+instructions, and we report both settings.
+
+\q{Could the test set contain near-copies of the training pages?}
+\ans We checked. No test page duplicates a training page; one exceeds the common near-duplicate threshold of 0.8 (word
+5-gram Jaccard similarity) and 28 exceed 0.5. Removing these 28 pages changes SSIM, LPIPS and CodeBLEU by less than 0.01
+and does not change the ranking of the models.
+
+\q{Why did you not compare with GPT-4o or other commercial models?}
+\ans Our goal was a model that runs on a single consumer GPU without per-token cost and without sending designs to a
+third party, so we compared against open models of similar size. We did not test commercial models, so we make no claim
+about how we compare with them.
+
+\q{Why no few-shot baseline, or an existing WebSight-trained model?}
+\ans A few-shot prompt needs at least one example screenshot plus its full code (about 1,500 tokens per example). The
+zero-shot 3B model in 16-bit already needs more memory than our 8\,GB GPU provides. The WebSight-trained models we know
+of have 7B parameters or more and generate HTML only, so they cannot run on our hardware or produce React and Vue.
+
+\q{Did you run several seeds? How reliable are the results?}
+\ans Each model was trained once, which is a limitation. To quantify uncertainty we report paired bootstrap 95\%
+confidence intervals and $p$-values over the 496 test images for every comparison.
+
+\q{How do you know the generated React and Vue training targets are correct?}
+\ans Every target passed a production parser, with up to two repair attempts. Three independent validators agree with a
+mean PABAK of 0.9786. We also rendered the targets of 2,000 images: 99.5\% of the JSX and 100\% of the Vue targets render,
+with a median SSIM of 0.90 and 0.96 to their source page.
+
+\q{Is the generated code ready for production?}
+\ans No. It handles static layouts, not state management, interaction or accessibility, and it should be reviewed by a
+developer before it is merged.
+
+\q{Why did you limit generation to 1,536 tokens? Does that cut outputs?}
+\ans The limit covers 99.93\% of the test references. None of our fine-tuned model's WebSight outputs reached it; it cut
+3.7\% of the base model's and 1.1\% of the zero-shot 3B model's outputs.
+
+%======================================================================
+\section{General questions}
+
+\q{Why React and Vue?}
+\ans They are among the most widely used component-based frontend frameworks. HTML output must be converted by hand
+before it can be used in such a codebase.
+
+\q{Why Qwen2-VL-2B?}
+\ans It is a small open vision-language model that we could fine-tune with QLoRA on an 8\,GB GPU. Qwen2.5-VL-3B is a
+newer and larger model from the same family, which lets us compare scale.
+
+\q{What hardware did you use?}
+\ans One NVIDIA GeForce RTX 3070 Ti with 8\,GB for all training and inference. The 3B model's single epoch took about 34
+hours.
+
+\q{Why WebSight and not real web pages for training?}
+\ans WebSight provides clean, self-contained HTML pages with matching screenshots, without the broken layouts and
+copyright problems of scraped pages. Its limitation, shorter and simpler pages, shows up in our Design2Code results.
+
+\q{How large is the dataset?}
+\ans We processed 15,752 WebSight samples; 15,588 have valid React and Vue targets. For fine-tuning we used 9,889 samples,
+giving 25,215 training, 2,964 validation and 1,488 test examples (each image has an HTML, a JSX and a Vue task).
+
+\q{What would you do next?}
+\ans Compare QLoRA with LoRA and DoRA on the same hardware, train on longer real-world pages such as WebCode2M, add
+interaction-aware metrics, and add a self-repair loop driven by validation errors at inference time.
+
+\q{If you do not know the answer to a question}
+\ans Say: ``That is a good point; we did not test that in this paper, but it is a natural next step.'' Do not guess
+numbers.
+
+\end{document}

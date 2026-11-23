@@ -1,0 +1,53 @@
+\section{Speech: 5-minute version (9 slides)}
+
+Use the deck \texttt{ISASF2026\_Paper132\_Presentation\_5min.pptx}. Speak slowly: the script is about
+4 minutes 15 seconds, which leaves time for changing slides. If you run short of time, skip the sentences marked
+\textit{(optional)}.
+
+\slide{1}{Title}{15 s}
+\say{Good morning. I am [name]. Our paper asks one question: can a small vision-language model, fine-tuned on a
+single 8-gigabyte GPU, turn a screenshot of a user interface into React or Vue code?}
+
+\slide{2}{Introduction}{40 s}
+\say{Screenshot-to-code research mostly produces HTML, but real frontends are built from React and Vue components,
+and large commercial models cost money per token and see your unreleased designs.
+No dataset pairs screenshots with validated React and Vue code. And small models struggle here: used zero-shot,
+the 2B model imports UI libraries in 437 of its 496 React outputs, even though we asked for Tailwind only.}
+
+\slide{3}{Methodology}{50 s}
+\say{We did three things. First, we extended WebSight: a code model generated React and Vue versions of every page,
+each checked by a real parser; 15,588 samples have both targets valid.
+Second, we fine-tuned two models with QLoRA on one 8-gigabyte GPU: Qwen2-VL-2B, and for comparison Qwen2.5-VL-3B.
+Third, we evaluated the code, and we rendered every output in a browser to compare it with the original screenshot,
+with bootstrap confidence intervals.}
+
+\slide{4}{Results: WebSight}{55 s}
+\say{On 1,488 test samples, fine-tuning the 2B model raises BLEU-4 from 52 to 81 and CodeBLEU from 0.52 to 0.74.
+Against the larger zero-shot 3B model, our renders are significantly closer on LPIPS and PSNR.
+On SSIM the two are statistically tied; SSIM is near its ceiling of 0.722.
+The fine-tuned 3B improves a lot too, but does not beat the 2B. \textit{(optional:) It had only one epoch instead of three.}}
+
+\slide{5}{Efficiency}{35 s}
+\say{Our 2B model needs 2.18 gigabytes of GPU memory, a third of the zero-shot 3B model, and it is about twice as fast.
+But to be clear: 4-bit QLoRA saves memory, not time. It is 1.75 times slower than the 16-bit base model.}
+
+\slide{6}{Real web pages (Design2Code)}{45 s}
+\say{Reviewers asked about real websites, so we tested 100 real pages from Design2Code.
+Fine-tuning still helps strongly: SSIM rises by 0.21 over the base model.
+But here our model is only tied with the 3B models, and it writes about 600 tokens per page, while real HTML has a
+median of nearly 15,000. It learned the length of the short synthetic training pages.}
+
+\slide{7}{Conclusion}{30 s}
+\say{To conclude: we built more than 15,000 parser-validated React and Vue targets, and showed that a 2B model
+fine-tuned on one consumer GPU can match a larger fine-tuned model and, on WebSight-style pages, beat a larger zero-shot
+one, with designs kept on-premises.
+\textit{(optional:) Next, we want to train on longer real pages and compare QLoRA with LoRA and DoRA.}}
+
+\slide{8--9}{References and Thank You}{5 s}
+\say{Thank you. I am happy to take your questions.}
+
+\medskip
+\noindent\textbf{Timing check:} 15 + 40 + 50 + 55 + 35 + 45 + 30 + 5 seconds = 4 minutes 35 seconds.
+The longer 14-slide deck (\texttt{ISASF2026\_Paper132\_Presentation.pptx}) stays as a backup; the slides removed from
+the 5-minute version (abstract, literature review, dataset, discussion, limitations) are useful if someone asks.
+
