@@ -1,0 +1,116 @@
+{
+  "base": {
+    "per_task": {
+      "html": {
+        "mean_tokens": 497.1,
+        "median_tokens": 442.0,
+        "p95_tokens": 947.0,
+        "cap_hit_pct": 4.23,
+        "ref_mean_tokens": 458.8
+      },
+      "jsx": {
+        "mean_tokens": 326.9,
+        "median_tokens": 286.5,
+        "p95_tokens": 624.0,
+        "cap_hit_pct": 1.01,
+        "ref_mean_tokens": 453.4
+      },
+      "vue": {
+        "mean_tokens": 444.6,
+        "median_tokens": 365.0,
+        "p95_tokens": 1532.0,
+        "cap_hit_pct": 5.85,
+        "ref_mean_tokens": 464.1
+      }
+    },
+    "mean_tokens": 422.9,
+    "cap_hit_pct": 3.7,
+    "ref_mean_tokens": 458.8,
+    "ref_within_cap_pct": 99.93,
+    "batches": {
+      "n_batches": 73,
+      "batch_size_mode": 20,
+      "mean_batch_seconds": 144.5,
+      "mean_longest_output_tokens": 1107.8,
+      "batches_with_cap_hit_pct": 46.6,
+      "corr_longest_output_vs_batch_time": 0.91,
+      "sec_per_longest_token": 0.1305
+    }
+  },
+  "qwen2.5": {
+    "per_task": {
+      "html": {
+        "mean_tokens": 545.6,
+        "median_tokens": 518.5,
+        "p95_tokens": 866.75,
+        "cap_hit_pct": 2.22,
+        "ref_mean_tokens": 458.8
+      },
+      "jsx": {
+        "mean_tokens": 321.3,
+        "median_tokens": 299.5,
+        "p95_tokens": 542.0,
+        "cap_hit_pct": 0.81,
+        "ref_mean_tokens": 453.4
+      },
+      "vue": {
+        "mean_tokens": 345.6,
+        "median_tokens": 340.0,
+        "p95_tokens": 537.25,
+        "cap_hit_pct": 0.4,
+        "ref_mean_tokens": 464.1
+      }
+    },
+    "mean_tokens": 404.2,
+    "cap_hit_pct": 1.14,
+    "ref_mean_tokens": 458.8,
+    "ref_within_cap_pct": 99.93,
+    "batches": {
+      "n_batches": 63,
+      "batch_size_mode": 20,
+      "mean_batch_seconds": 984.8,
+      "mean_longest_output_tokens": 961.0,
+      "batches_with_cap_hit_pct": 25.4,
+      "corr_longest_output_vs_batch_time": 0.86,
+      "sec_per_longest_token": 1.0247
+    }
+  },
+  "qlora": {
+    "per_task": {
+      "html": {
+        "mean_tokens": 448.4,
+        "median_tokens": 428.0,
+        "p95_tokens": 694.75,
+        "cap_hit_pct": 0.0,
+        "ref_mean_tokens": 458.8
+      },
+      "jsx": {
+        "mean_tokens": 443.9,
+        "median_tokens": 429.0,
+        "p95_tokens": 683.5,
+        "cap_hit_pct": 0.0,
+        "ref_mean_tokens": 453.4
+      },
+      "vue": {
+        "mean_tokens": 447.4,
+        "median_tokens": 434.0,
+        "p95_tokens": 693.5,
+        "cap_hit_pct": 0.0,
+        "ref_mean_tokens": 464.1
+      }
+    },
+    "mean_tokens": 446.6,
+    "cap_hit_pct": 0.0,
+    "ref_mean_tokens": 458.8,
+    "ref_within_cap_pct": 99.93,
+    "batches": {
+      "n_batches": 46,
+      "batch_size_mode": 40,
+      "mean_batch_seconds": 138.5,
+      "mean_longest_output_tokens": 739.7,
+      "batches_with_cap_hit_pct": 0.0,
+      "corr_longest_output_vs_batch_time": 0.914,
+      "sec_per_longest_token": 0.1872
+    }
+  }
+}

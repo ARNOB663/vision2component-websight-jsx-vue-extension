@@ -82,24 +82,87 @@ _ORIGINAL_IMAGE_CACHE: dict = {}
 # ═══════════════════════════════════════════════════════════════════════════════
 # HTML WRAPPERS
 # ═══════════════════════════════════════════════════════════════════════════════
+def _prepare_jsx_for_browser(jsx_code: str):
+    """Make module-style JSX runnable inside <script type="text/babel">.
+
+    Generated components are written as ES modules (`import React from 'react';`
+    ... `export default GeneratedComponent;`). Babel standalone executes the
+    script as a classic script, where `import` is a syntax error that aborts the
+    whole block and `export` puts the component out of global scope. Both must be
+    removed, and the component name must be recovered so it can be mounted.
+
+    Returns (cleaned_code, component_name or None).
+    """
+    import re as _re
+
+    code = jsx_code
+
+    # 1) Drop ES module imports (side-effect imports included).
+    code = _re.sub(r"(?m)^[ \t]*import\s+[^;\n]*;?[ \t]*$", "", code)
+
+    # 2) Capture `export default <Name>;` then remove the statement.
+    default_name = None
+    m = _re.search(r"(?m)^[ \t]*export\s+default\s+([A-Za-z_$][\w$]*)\s*;?[ \t]*$", code)
+    if m:
+        default_name = m.group(1)
+    code = _re.sub(r"(?m)^[ \t]*export\s+default\s+[A-Za-z_$][\w$]*\s*;?[ \t]*$", "", code)
+
+    # 3) `export default function Foo()` / `export default () =>` -> assign to a name.
+    code = _re.sub(r"(?m)^[ \t]*export\s+default\s+function\s+([A-Za-z_$][\w$]*)",
+                   r"function \1", code)
+    code = _re.sub(r"(?m)^[ \t]*export\s+default\s+",
+                   "const __DefaultExport__ = ", code)
+
+    # 4) Strip the `export` keyword from named exports, keeping the declaration.
+    code = _re.sub(r"(?m)^[ \t]*export\s+(?=(const|let|var|function|class)\b)", "", code)
+    # 4b) Drop export lists (`export { A, B as C };`); the declarations stay in scope.
+    code = _re.sub(r"(?m)^[ \t]*export\s*\{[^}]*\}\s*;?[ \t]*$", "", code)
+
+    # 5) Decide which component to mount.
+    name = None
+    if "GeneratedComponent" in code:
+        name = "GeneratedComponent"
+    elif default_name and _re.search(r"\b(const|let|var|function|class)\s+" + _re.escape(default_name) + r"\b", code):
+        name = default_name
+    elif "__DefaultExport__" in code:
+        name = "__DefaultExport__"
+    else:
+        # Fall back to the first component-looking declaration (capitalised name).
+        m = _re.search(r"(?m)^[ \t]*(?:const|let|var|function|class)\s+([A-Z][\w$]*)", code)
+        if m:
+            name = m.group(1)
+
+    return code, name
+
+
 def wrap_jsx_as_html(jsx_code: str) -> str:
     """Wrap JSX into a standalone HTML page using Babel standalone + React CDN."""
+    code, component = _prepare_jsx_for_browser(jsx_code)
+
+    if component is None:
+        # Nothing mountable: render an empty page so the sample scores as a
+        # failed render rather than silently matching a blank reference.
+        return ("<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+                "</head><body></body></html>")
+
     return f"""<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
-<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.7/babel.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 </head><body>
 <div id="root"></div>
-<script type="text/babel">
-{jsx_code}
+<script type="text/babel" data-presets="react">
+{code}
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(React.createElement(
-  typeof GeneratedComponent !== 'undefined' ? GeneratedComponent : () => React.createElement('div', null, 'No component')
-));
+try {{
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(React.createElement({component}));
+}} catch (e) {{
+  document.getElementById('root').innerHTML = '';
+}}
 </script>
 </body></html>"""
 
@@ -151,6 +214,21 @@ async def render_screenshot(page, html_content: str, output_path: str, render_wa
     try:
         await page.goto(f"file:///{tmp.name}", wait_until="networkidle", timeout=15000)
         await page.wait_for_timeout(render_wait_ms)
+
+        # A page that produced no visible content (syntax error, failed mount,
+        # unresolved component) must count as a failed render. Without this
+        # check it screenshots as a blank white page, which scores a
+        # deceptively high SSIM against predominantly white references.
+        has_content = await page.evaluate(
+            "() => { const b = document.body;"
+            " if (!b) return false;"
+            " const text = (b.innerText || '').trim();"
+            " const nodes = b.querySelectorAll('*').length;"
+            " return text.length > 0 || nodes > 3; }"
+        )
+        if not has_content:
+            return  # leave screenshot absent -> scored as a failed render
+
         await page.screenshot(path=output_path, full_page=False)
     except Exception as e:
         pass  # Silently skip renderer crashes (usually syntactically broken code)

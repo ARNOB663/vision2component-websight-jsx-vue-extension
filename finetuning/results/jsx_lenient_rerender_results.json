@@ -1,0 +1,29 @@
+{
+  "base": {
+    "n_samples": 496,
+    "n_with_library_imports": 437,
+    "n_rendered": 435,
+    "avg_ssim": 0.6378,
+    "avg_psnr": 10.15,
+    "avg_ssim_rendered_only": 0.7272,
+    "avg_lpips": 0.6241
+  },
+  "qwen2.5": {
+    "n_samples": 496,
+    "n_with_library_imports": 19,
+    "n_rendered": 474,
+    "avg_ssim": 0.7005,
+    "avg_psnr": 11.17,
+    "avg_ssim_rendered_only": 0.733,
+    "avg_lpips": 0.5734
+  },
+  "qlora": {
+    "n_samples": 496,
+    "n_with_library_imports": 0,
+    "n_rendered": 496,
+    "avg_ssim": 0.6899,
+    "avg_psnr": 11.64,
+    "avg_ssim_rendered_only": 0.6899,
+    "avg_lpips": 0.5285
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "reference": {
+    "html": {
+      "n": 100,
+      "rendered": 94,
+      "ssim": 0.6858,
+      "psnr": 11.02,
+      "lpips": 0.5069
+    }
+  },
+  "base": {
+    "html": {
+      "n": 100,
+      "rendered": 96,
+      "ssim": 0.6677,
+      "psnr": 10.04,
+      "lpips": 0.6355
+    },
+    "jsx": {
+      "n": 100,
+      "rendered": 13,
+      "ssim": 0.0941,
+      "psnr": 1.43,
+      "lpips": 0.9503
+    },
+    "vue": {
+      "n": 100,
+      "rendered": 90,
+      "ssim": 0.6129,
+      "psnr": 8.86,
+      "lpips": 0.6733
+    },
+    "overall": {
+      "ssim": 0.4582,
+      "psnr": 6.7767,
+      "lpips": 0.753
+    },
+    "overall_common_pages": {
+      "ssim": 0.3919,
+      "psnr": 5.9467,
+      "lpips": 0.7743
+    }
+  },
+  "qwen2.5": {
+    "html": {
+      "n": 25,
+      "rendered": 25,
+      "ssim": 0.6623,
+      "psnr": 10.43,
+      "lpips": 0.6148
+    },
+    "jsx": {
+      "n": 25,
+      "rendered": 22,
+      "ssim": 0.5614,
+      "psnr": 7.8,
+      "lpips": 0.6859
+    },
+    "vue": {
+      "n": 25,
+      "rendered": 25,
+      "ssim": 0.6579,
+      "psnr": 9.24,
+      "lpips": 0.6502
+    },
+    "overall": {
+      "ssim": 0.6272,
+      "psnr": 9.1567,
+      "lpips": 0.6503
+    },
+    "overall_common_pages": {
+      "ssim": 0.6272,
+      "psnr": 9.1556,
+      "lpips": 0.6503
+    }
+  },
+  "qlora": {
+    "html": {
+      "n": 100,
+      "rendered": 100,
+      "ssim": 0.7137,
+      "psnr": 10.79,
+      "lpips": 0.5918
+    },
+    "jsx": {
+      "n": 100,
+      "rendered": 93,
+      "ssim": 0.6226,
+      "psnr": 9.41,
+      "lpips": 0.6634
+    },
+    "vue": {
+      "n": 100,
+      "rendered": 99,
+      "ssim": 0.6692,
+      "psnr": 9.77,
+      "lpips": 0.6387
+    },
+    "overall": {
+      "ssim": 0.6685,
+      "psnr": 9.99,
+      "lpips": 0.6313
+    },
+    "overall_common_pages": {
+      "ssim": 0.6066,
+      "psnr": 9.2531,
+      "lpips": 0.6386
+    }
+  },
+  "qlora_3b": {
+    "html": {
+      "n": 100,
+      "rendered": 100,
+      "ssim": 0.6991,
+      "psnr": 10.72,
+      "lpips": 0.5917
+    },
+    "jsx": {
+      "n": 100,
+      "rendered": 98,
+      "ssim": 0.6442,
+      "psnr": 9.38,
+      "lpips": 0.6355
+    },
+    "vue": {
+      "n": 100,
+      "rendered": 99,
+      "ssim": 0.6569,
+      "psnr": 9.88,
+      "lpips": 0.6244
+    },
+    "overall": {
+      "ssim": 0.6667,
+      "psnr": 9.9933,
+      "lpips": 0.6172
+    },
+    "overall_common_pages": {
+      "ssim": 0.6259,
+      "psnr": 9.4336,
+      "lpips": 0.6279
+    }
+  },
+  "n_common_pages": 25
+}

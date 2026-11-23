@@ -1,0 +1,57 @@
+{
+  "n_images": 2000,
+  "by_split": {
+    "train": 1329,
+    "val": 175,
+    "test": 496
+  },
+  "html_render_rate": 0.999,
+  "jsx_render_rate": 0.995,
+  "vue_render_rate": 1.0,
+  "jsx_vs_html": {
+    "n_pairs": 1989,
+    "mean": 0.8097,
+    "median": 0.9001,
+    "p10": 0.4422,
+    "share_ge_0.9": 0.5008,
+    "share_ge_0.8": 0.638,
+    "share_lt_0.5": 0.1267
+  },
+  "vue_vs_html": {
+    "n_pairs": 1998,
+    "mean": 0.8574,
+    "median": 0.9589,
+    "p10": 0.5723,
+    "share_ge_0.9": 0.6121,
+    "share_ge_0.8": 0.7312,
+    "share_lt_0.5": 0.0801
+  },
+  "test_reference_vs_original_screenshot": {
+    "html": {
+      "n": 496,
+      "rendered": 496,
+      "ssim": 0.7563,
+      "psnr": 13.22,
+      "lpips": 0.4704
+    },
+    "jsx": {
+      "n": 496,
+      "rendered": 495,
+      "ssim": 0.6999,
+      "psnr": 12.19,
+      "lpips": 0.4983
+    },
+    "vue": {
+      "n": 496,
+      "rendered": 496,
+      "ssim": 0.7087,
+      "psnr": 11.83,
+      "lpips": 0.5059
+    },
+    "overall": {
+      "ssim": 0.7216,
+      "psnr": 12.4133,
+      "lpips": 0.4915
+    }
+  }
+}

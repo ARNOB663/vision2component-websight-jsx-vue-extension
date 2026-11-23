@@ -593,6 +593,7 @@ def run_inference(
             new_tokens = output_ids[j][input_len:]
             prediction = processor.tokenizer.decode(new_tokens, skip_special_tokens=True)
             prediction = strip_code_fences(prediction)
+            n_generated = int((new_tokens != processor.tokenizer.pad_token_id).sum())
 
             task = batch_tasks[j]
             reference = batch_references[j]
@@ -603,6 +604,7 @@ def run_inference(
                 "reference": reference,
                 "parse_ok": ok,
                 "parse_error": err,
+                "n_generated_tokens": n_generated,
             })
 
             latencies.append(per_sample_latency)
@@ -660,14 +662,19 @@ def run_inference(
 def main():
     parser = argparse.ArgumentParser(description="Evaluate fine-tuned adapter")
     parser.add_argument(
-        "--method", required=True, choices=["qlora", "base", "qwen2.5"],
-        help="Evaluation method: qlora (fine-tuned adapter), base (zero-shot qwen2), qwen2.5 (zero-shot qwen2.5)",
+        "--method", required=True, choices=["qlora", "base", "qwen2.5", "qlora_3b"],
+        help="Evaluation method: qlora (fine-tuned adapter), base (zero-shot qwen2), qwen2.5 (zero-shot qwen2.5), "
+             "qlora_3b (fine-tuned adapter on qwen2.5-3b)",
     )
     parser.add_argument(
         "--test-file", default=str(DATA_DIR / "test.jsonl"),
         help="Path to test JSONL file",
     )
     parser.add_argument("--max-samples", type=int, default=None, help="Limit test samples (default: all)")
+    parser.add_argument(
+        "--tag", default=None,
+        help="Suffix for output files ({method}_{tag}_*.json), e.g. design2code or latency",
+    )
     parser.add_argument(
         "--batch-size", type=int, default=4,
         help="Batch size for inference (default: 4). Increase for faster throughput if VRAM allows.",
@@ -728,8 +735,8 @@ def main():
     gc.collect()
     cuda_empty_cache()
 
-    is_qlora = args.method == "qlora"
-    is_qwen2_5 = args.method == "qwen2.5"
+    is_qlora = args.method in ("qlora", "qlora_3b")
+    is_qwen2_5 = args.method in ("qwen2.5", "qlora_3b")
     device = get_device()
 
     if is_qlora and not _has_cuda():
@@ -741,7 +748,8 @@ def main():
     if device.type == "mps":
         load_dtype = torch.float16
     else:
-        load_dtype = torch.float16 if is_qlora else torch.bfloat16
+        # qlora_3b was trained in bf16 (fp16 overflows on Qwen2.5-VL); 2B qlora in fp16
+        load_dtype = torch.float16 if args.method == "qlora" else torch.bfloat16
 
     model_kwargs = {"torch_dtype": load_dtype}
     if _has_cuda():
@@ -763,7 +771,7 @@ def main():
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
             bnb_4bit_use_double_quant=True,
-            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_compute_dtype=load_dtype,
         )
 
     from transformers import AutoProcessor
@@ -821,7 +829,7 @@ def main():
         print(f"  [OPT] Image processor: min_pixels={processor.image_processor.min_pixels}, "
               f"max_pixels={processor.image_processor.max_pixels}")
 
-    if args.method == "qlora":
+    if is_qlora:
         adapter_path = (OUTPUTS_DIR / args.method / "final_adapter").resolve()
         if not (adapter_path / "adapter_config.json").exists():
             raise FileNotFoundError(
@@ -852,14 +860,15 @@ def main():
     print(f"  Max new tokens: {args.max_new_tokens}")
     print(f"  Images:         {'images_small (pre-resized)' if IMAGES_SMALL_DIR.exists() else 'original'}")
     print(f"  Padding:        left (for batched generation)")
-    if args.method == "qlora":
-        print(f"  Adapter:        qlora (4-bit, not merged)")
+    if is_qlora:
+        print(f"  Adapter:        {args.method} (4-bit, not merged)")
     print(f"{'='*60}\n")
     print("Model loaded.\n")
 
     # ── Inference ──
     cuda_reset_peak_stats()
-    autosave_path = RESULTS_DIR / f"{args.method}_inference_progress.json" if args.save_every > 0 else None
+    run_name = f"{args.method}_{args.tag}" if args.tag else args.method
+    autosave_path = RESULTS_DIR / f"{run_name}_inference_progress.json" if args.save_every > 0 else None
 
     existing_results = None
     existing_latencies = None
@@ -947,8 +956,12 @@ def main():
 
     summary = {
         "method": args.method,
+        "tag": args.tag,
+        "test_file": args.test_file,
         "total_samples": total_samples,
         "avg_inference_latency_s": round(avg_latency, 3),
+        # in test-file order; lets latency runs be compared on a shared prefix
+        "per_sample_latency_s": [round(float(x), 4) for x in latencies],
         "peak_vram_gb": round(peak_mem, 2) if peak_mem is not None else None,
         "batch_size": args.batch_size,
         "max_new_tokens": args.max_new_tokens,
@@ -972,12 +985,12 @@ def main():
             summary[f"avg_{metric_name}"] = round(weighted, 4)
 
     # ── Save results ──
-    out_path = RESULTS_DIR / f"{args.method}_eval_results.json"
+    out_path = RESULTS_DIR / f"{run_name}_eval_results.json"
     with open(out_path, "w") as f:
         json.dump(summary, f, indent=2)
 
     # Save per-sample predictions for deeper analysis
-    predictions_path = RESULTS_DIR / f"{args.method}_predictions.json"
+    predictions_path = RESULTS_DIR / f"{run_name}_predictions.json"
     with open(predictions_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 

@@ -1,0 +1,50 @@
+{
+  "base": {
+    "html": {
+      "n_samples": 496,
+      "n_rendered": 478,
+      "n_failed": 18,
+      "avg_ssim": 0.7244,
+      "avg_psnr": 12.31
+    },
+    "vue": {
+      "n_samples": 496,
+      "n_rendered": 486,
+      "n_failed": 10,
+      "avg_ssim": 0.7032,
+      "avg_psnr": 11.16
+    }
+  },
+  "qwen2.5": {
+    "html": {
+      "n_samples": 496,
+      "n_rendered": 485,
+      "n_failed": 11,
+      "avg_ssim": 0.7165,
+      "avg_psnr": 12.17
+    },
+    "vue": {
+      "n_samples": 496,
+      "n_rendered": 493,
+      "n_failed": 3,
+      "avg_ssim": 0.7202,
+      "avg_psnr": 11.42
+    }
+  },
+  "qlora": {
+    "html": {
+      "n_samples": 496,
+      "n_rendered": 496,
+      "n_failed": 0,
+      "avg_ssim": 0.752,
+      "avg_psnr": 13.09
+    },
+    "vue": {
+      "n_samples": 496,
+      "n_rendered": 496,
+      "n_failed": 0,
+      "avg_ssim": 0.7056,
+      "avg_psnr": 11.55
+    }
+  }
+}

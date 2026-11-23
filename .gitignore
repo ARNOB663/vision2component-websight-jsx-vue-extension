@@ -93,3 +93,17 @@ Thumbs.db
 .env
 .env.local
 .env.*
+
+# LaTeX build files
+*.aux
+*.bbl
+*.blg
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+# Scratch build folders and third-party templates
+_build_camera/
+templte/

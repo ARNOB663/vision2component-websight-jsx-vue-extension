@@ -1,0 +1,29 @@
+{
+  "base": {
+    "method": "base",
+    "n_samples": 496,
+    "n_rendered": 60,
+    "n_failed": 436,
+    "avg_ssim": 0.0987,
+    "avg_psnr": 1.83,
+    "avg_ssim_rendered_only": 0.8162
+  },
+  "qwen2.5": {
+    "method": "qwen2.5",
+    "n_samples": 496,
+    "n_rendered": 472,
+    "n_failed": 24,
+    "avg_ssim": 0.6967,
+    "avg_psnr": 11.09,
+    "avg_ssim_rendered_only": 0.7322
+  },
+  "qlora": {
+    "method": "qlora",
+    "n_samples": 496,
+    "n_rendered": 496,
+    "n_failed": 0,
+    "avg_ssim": 0.6899,
+    "avg_psnr": 11.64,
+    "avg_ssim_rendered_only": 0.6899
+  }
+}

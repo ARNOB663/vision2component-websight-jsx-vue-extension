@@ -1,0 +1,29 @@
+{
+  "method": "qlora_3b",
+  "html": {
+    "n": 496,
+    "rendered": 496,
+    "ssim": 0.7483,
+    "psnr": 12.88,
+    "lpips": 0.5043
+  },
+  "jsx": {
+    "n": 496,
+    "rendered": 495,
+    "ssim": 0.6901,
+    "psnr": 11.41,
+    "lpips": 0.5377
+  },
+  "vue": {
+    "n": 496,
+    "rendered": 496,
+    "ssim": 0.7105,
+    "psnr": 11.53,
+    "lpips": 0.5305
+  },
+  "overall": {
+    "ssim": 0.7163,
+    "psnr": 11.94,
+    "lpips": 0.5242
+  }
+}

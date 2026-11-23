@@ -12,6 +12,8 @@ Resume behaviour:
 Usage:
     python finetuning/train.py
     python finetuning/train.py --resume
+    python finetuning/train.py --method qlora_3b                    # Qwen2.5-VL-3B baseline
+    python finetuning/train.py --method qlora_3b --trial-steps 20   # speed/VRAM probe
 """
 
 import os
@@ -26,6 +28,7 @@ import pandas as pd
 from PIL import Image
 from transformers import (
     Qwen2VLForConditionalGeneration,
+    Qwen2_5_VLForConditionalGeneration,
     AutoProcessor,
     BitsAndBytesConfig,
     TrainingArguments,
@@ -129,11 +132,22 @@ class StepTimingCallback(TrainerCallback):
 # PATHS
 # ═══════════════════════════════════════════════════════════════════════════════
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-MODEL_ID = "Qwen/Qwen2-VL-2B-Instruct"
-LOCAL_MODEL_DIR = PROJECT_ROOT / "finetuning" / "models" / "Qwen2-VL-2B-Instruct"
 DATA_DIR = PROJECT_ROOT / "finetuning" / "data"
 CONFIGS_DIR = PROJECT_ROOT / "finetuning" / "configs"
 OUTPUTS_DIR = PROJECT_ROOT / "finetuning" / "outputs"
+
+# Config key "base_model" selects the backbone (default: Qwen2-VL-2B-Instruct)
+BASE_MODELS = {
+    "Qwen2-VL-2B-Instruct": ("Qwen/Qwen2-VL-2B-Instruct", Qwen2VLForConditionalGeneration),
+    "Qwen2.5-VL-3B-Instruct": ("Qwen/Qwen2.5-VL-3B-Instruct", Qwen2_5_VLForConditionalGeneration),
+}
+
+
+def base_model_spec(config: dict):
+    """Return (hub id, local dir, model class) for the config's base model."""
+    name = config.get("base_model", "Qwen2-VL-2B-Instruct")
+    model_id, model_class = BASE_MODELS[name]
+    return model_id, PROJECT_ROOT / "finetuning" / "models" / name, model_class
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -246,22 +260,23 @@ class VLCodeDataset(Dataset):
 # ═══════════════════════════════════════════════════════════════════════════════
 # MODEL LOADING
 # ═══════════════════════════════════════════════════════════════════════════════
-def download_model_if_needed():
+def download_model_if_needed(config: dict):
     """Download base model to local folder on first run."""
-    if LOCAL_MODEL_DIR.exists() and any(LOCAL_MODEL_DIR.iterdir()):
-        print(f"Base model already cached at: {LOCAL_MODEL_DIR}")
+    model_id, local_model_dir, model_class = base_model_spec(config)
+    if local_model_dir.exists() and any(local_model_dir.iterdir()):
+        print(f"Base model already cached at: {local_model_dir}")
         return
 
-    print(f"Downloading {MODEL_ID} to {LOCAL_MODEL_DIR} ...")
-    LOCAL_MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"Downloading {model_id} to {local_model_dir} ...")
+    local_model_dir.mkdir(parents=True, exist_ok=True)
 
-    processor = AutoProcessor.from_pretrained(MODEL_ID)
-    processor.save_pretrained(str(LOCAL_MODEL_DIR))
+    processor = AutoProcessor.from_pretrained(model_id)
+    processor.save_pretrained(str(local_model_dir))
 
-    model = Qwen2VLForConditionalGeneration.from_pretrained(
-        MODEL_ID, torch_dtype=torch.float16
+    model = model_class.from_pretrained(
+        model_id, torch_dtype=torch.float16
     )
-    model.save_pretrained(str(LOCAL_MODEL_DIR))
+    model.save_pretrained(str(local_model_dir))
     del model
     gc.collect()
     cuda_empty_cache()
@@ -270,7 +285,8 @@ def download_model_if_needed():
 
 def load_model_and_processor(config: dict):
     """Load base model with optional quantization, apply PEFT adapter."""
-    model_path = str(LOCAL_MODEL_DIR)
+    _, local_model_dir, model_class = base_model_spec(config)
+    model_path = str(local_model_dir)
     device = get_device()
 
     quant_config = None
@@ -304,7 +320,7 @@ def load_model_and_processor(config: dict):
         model_kwargs["quantization_config"] = quant_config
 
     print(f"Loading model from: {model_path}")
-    model = Qwen2VLForConditionalGeneration.from_pretrained(model_path, **model_kwargs)
+    model = model_class.from_pretrained(model_path, **model_kwargs)
     if not _has_cuda():
         model = model.to(device)
 
@@ -323,6 +339,11 @@ def load_model_and_processor(config: dict):
         model = prepare_model_for_kbit_training(
             model, use_gradient_checkpointing=config.get("gradient_checkpointing", True)
         )
+        if config.get("frozen_embeddings_half"):
+            # prepare_model_for_kbit_training upcasts the frozen (tied) embedding /
+            # lm_head to fp32; keeping it in 16-bit frees ~0.6 GiB on 8 GB cards.
+            model.get_input_embeddings().to(load_dtype)
+            model.get_output_embeddings().to(load_dtype)
 
     processor = AutoProcessor.from_pretrained(
         model_path,
@@ -339,6 +360,8 @@ def load_model_and_processor(config: dict):
         lora_alpha=config["lora_alpha"],
         lora_dropout=config["lora_dropout"],
         target_modules=config["target_modules"],
+        # Qwen2.5-VL's vision MLP also uses gate/up/down_proj names; keep adapters LM-only
+        exclude_modules=config.get("exclude_modules"),
         task_type=TaskType.CAUSAL_LM,
     )
 
@@ -424,7 +447,8 @@ class VLDataCollator:
 # ═══════════════════════════════════════════════════════════════════════════════
 def load_model_for_eval(config: dict, adapter_dir: str):
     """Load base model + adapter and processor for eval only (no grad, no checkpointing)."""
-    model_path = str(LOCAL_MODEL_DIR)
+    _, local_model_dir, model_class = base_model_spec(config)
+    model_path = str(local_model_dir)
     device = get_device()
     quant_config = None
     if config.get("quantization"):
@@ -451,7 +475,7 @@ def load_model_for_eval(config: dict, adapter_dir: str):
     if quant_config:
         model_kwargs["quantization_config"] = quant_config
     print("Loading model for validation (base + adapter)...")
-    model = Qwen2VLForConditionalGeneration.from_pretrained(model_path, **model_kwargs)
+    model = model_class.from_pretrained(model_path, **model_kwargs)
     if not _has_cuda():
         model = model.to(device)
     if quant_config:
@@ -501,8 +525,7 @@ def run_validation_after_training(adapter_dir: str, config: dict):
 # ═══════════════════════════════════════════════════════════════════════════════
 # TRAINING
 # ═══════════════════════════════════════════════════════════════════════════════
-def train(resume: bool = False):
-    method = "qlora"
+def train(resume: bool = False, method: str = "qlora", trial_steps: int = None):
     config_path = CONFIGS_DIR / f"{method}.json"
     if not config_path.exists():
         raise FileNotFoundError(f"Config not found: {config_path}")
@@ -510,7 +533,8 @@ def train(resume: bool = False):
     with open(config_path, "r") as f:
         config = json.load(f)
 
-    output_dir = OUTPUTS_DIR / method
+    # Trial runs go to a separate dir so they never look like a finished adapter
+    output_dir = OUTPUTS_DIR / (f"{method}_trial" if trial_steps else method)
     adapter_dir = output_dir / "final_adapter"
     results_dir = PROJECT_ROOT / "finetuning" / "results"
     metrics_path = results_dir / f"{method}_training_metrics.json"
@@ -544,7 +568,7 @@ def train(resume: bool = False):
     print(f"  {config['description']}")
     print(f"{'='*60}\n")
 
-    download_model_if_needed()
+    download_model_if_needed(config)
 
     model, processor, param_info = load_model_and_processor(config)
     device = get_device()
@@ -594,12 +618,16 @@ def train(resume: bool = False):
         report_to="none",
         remove_unused_columns=False,
         load_best_model_at_end=False,
-        optim="adamw_torch",
+        optim=config.get("optim", "adamw_torch"),
     )
     if do_eval:
         training_args_kw["load_best_model_at_end"] = True
         training_args_kw["metric_for_best_model"] = "eval_loss"
         training_args_kw["greater_is_better"] = False
+    if trial_steps:
+        training_args_kw["max_steps"] = trial_steps
+        training_args_kw["save_strategy"] = "no"
+        training_args_kw["logging_steps"] = 1
     training_args = TrainingArguments(**training_args_kw)
 
     timing_callback = StepTimingCallback()
@@ -642,6 +670,19 @@ def train(resume: bool = False):
 
     elapsed = time.time() - t_start
     peak_mem = cuda_max_allocated_gb()
+
+    if trial_steps:
+        sec_per_step = timing_callback.summary["measured_last_log_sec_per_step"]
+        steps_per_epoch = -(-len(train_ds) // (
+            config["per_device_train_batch_size"] * config["gradient_accumulation_steps"]
+        ))
+        reserved = torch.cuda.max_memory_reserved() / 1024**3 if _has_cuda() else 0.0
+        print(f"\n  TRIAL: {trial_steps} steps in {elapsed/60:.1f} min, peak VRAM {peak_mem:.2f} GiB "
+              f"allocated / {reserved:.2f} GiB reserved")
+        if sec_per_step:
+            print(f"  {sec_per_step:.2f} sec/step -> {steps_per_epoch} steps/epoch "
+                  f"= {steps_per_epoch * sec_per_step / 3600:.1f} h per epoch\n")
+        return
 
     # ── Save adapter ──
     adapter_dir_str = str(adapter_dir)
@@ -706,9 +747,17 @@ def main():
         "--resume", action="store_true",
         help="Resume training from last checkpoint",
     )
+    parser.add_argument(
+        "--method", default="qlora",
+        help="Config name in finetuning/configs/ (e.g. qlora, qlora_3b); also names the output dir",
+    )
+    parser.add_argument(
+        "--trial-steps", type=int, default=None,
+        help="Run only N optimizer steps to measure speed/VRAM (nothing is saved)",
+    )
     args = parser.parse_args()
 
-    train(args.resume)
+    train(args.resume, args.method, args.trial_steps)
 
 
 if __name__ == "__main__":
